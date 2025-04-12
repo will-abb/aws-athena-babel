@@ -230,8 +230,7 @@ Returns clickable Org links with full URL and file path."
       (cancel-timer aws-athena-babel-query-status-timer)
       (setq aws-athena-babel-query-status-timer nil)
       (when query-id
-        (aws-athena-babel--handle-query-completion query-id (get-buffer "*Athena Monitor*"))))
-    ))
+        (aws-athena-babel--handle-query-completion query-id (get-buffer "*Athena Monitor*"))))))
 
 (defun aws-athena-babel--fetch-query-json (query-id)
   "Return raw JSON output for Athena QUERY-ID."
@@ -330,8 +329,7 @@ This is done by downloading and displaying results."
     (when s3-uri
       (aws-athena-babel--download-csv-result s3-uri csv-path)
       (aws-athena-babel--insert-query-links-and-notes buffer csv-path query-id)
-      (aws-athena-babel--insert-console-style-results buffer csv-path)
-      )))
+      (aws-athena-babel--insert-console-style-results buffer csv-path))))
 
 (defun aws-athena-babel--query-result-path (json-output)
   "Extract S3 output location URI from Athena JSON-OUTPUT."
