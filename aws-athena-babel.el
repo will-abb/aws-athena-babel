@@ -48,20 +48,20 @@
 (defvar aws-athena-babel-query-file "/tmp/athena-query.sql"
   "Path to the temporary file where the Athena SQL query is stored.")
 
-(defvar aws-athena-babel-output-location "s3://athenaqueryresults-logarchive/"
+(defvar aws-athena-babel-output-location "s3://my-bucket/"
   "S3 location where Athena stores query results.
 For example: \"s3://my-bucket/path/\".")
 
 (defvar aws-athena-babel-workgroup "primary"
   "Athena workgroup to use.")
 
-(defvar aws-athena-babel-profile "athena-log-archive"
+(defvar aws-athena-babel-profile "athena-aws-profile"
   "AWS CLI profile to use for Athena queries.")
 
 (defvar aws-athena-babel-database "default"
   "Athena database to query.")
 
-(defvar aws-athena-babel-poll-interval 2
+(defvar aws-athena-babel-poll-interval 3
   "Polling interval in seconds for checking query execution status.")
 
 (defvar aws-athena-babel-fullscreen-monitor-buffer t
@@ -102,28 +102,82 @@ Do not modify directly.")
 ;;;###autoload
 (defun org-babel-execute:athena (body _params)
   "Execute an Athena SQL query block from Org Babel using BODY and PARAMS.
-Displays query progress and results in a dedicated monitor buffer."
-  (aws-athena-babel-query-executor body)
-  (format "Query submitted. See *Athena Monitor* buffer for progress and results or https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history/%s."
-          aws-athena-babel-console-region
-          aws-athena-babel-console-region
-          aws-athena-babel-query-id))
+Returns clickable Org links with full URL and file path."
+  (let* ((query-id (aws-athena-babel-query-executor body))
+         (console-url (format "https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history/%s"
+                              aws-athena-babel-console-region
+                              aws-athena-babel-console-region
+                              query-id))
+         (csv-path (format "%s/%s.csv"
+                           (directory-file-name aws-athena-babel-csv-output-dir)
+                           query-id)))
+    (list
+     "Query submitted. View:"
+     (format "[[%s][%s]]" console-url console-url)
+     (format "[[file:%s][%s]]" csv-path csv-path))))
 
 (defun aws-athena-babel-query-executor (query)
   "Submit Athena QUERY and stream live status to *Athena Monitor* buffer."
   (let ((monitor-buffer (aws-athena-babel--prepare-monitor-buffer))
         (query-id nil))
-
     (aws-athena-babel--display-monitor-buffer monitor-buffer)
     (aws-athena-babel--write-query-to-file query)
     (setq query-id (aws-athena-babel--start-query-execution))
     (aws-athena-babel--setup-monitor-state monitor-buffer query-id)
-    (aws-athena-babel--start-status-polling query-id)))
+    (aws-athena-babel--start-status-polling query-id)
+    query-id))
+
+(defun aws-athena-babel--prepare-monitor-buffer ()
+  "Create and populate the Athena monitor buffer."
+  (let ((buf (get-buffer-create "*Athena Monitor*")))
+    (with-current-buffer buf
+      (read-only-mode -1)
+      (erase-buffer)
+      (insert (propertize "Submitting Athena query...\n" 'face 'font-lock-keyword-face))
+      (insert (propertize "Press C-c C-k to cancel this query at any time.\n" 'face 'font-lock-doc-face))
+      (insert (propertize "You can also view your query history here:\n" 'face 'font-lock-doc-face))
+      (insert (propertize
+               (format "https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history"
+                       aws-athena-babel-console-region
+                       aws-athena-babel-console-region)
+               'face 'link))
+      (setq truncate-lines t)
+      (read-only-mode 1))
+    (aws-athena-babel--add-to-workspace buf)
+    buf))
+
+(defun aws-athena-babel--add-to-workspace (buffer)
+  "Add BUFFER to current workspace if `persp-mode' is active."
+  (when (and (featurep 'persp-mode)
+             (bound-and-true-p persp-mode)
+             (buffer-live-p buffer))
+    (persp-add-buffer buffer)))
+
+(defun aws-athena-babel--display-monitor-buffer (buffer)
+  "Display BUFFER based on fullscreen settings and add it to the current workspace."
+  (aws-athena-babel--add-to-workspace buffer)
+  (if aws-athena-babel-fullscreen-monitor-buffer
+      (progn
+        (switch-to-buffer buffer)
+        (delete-other-windows))
+    (display-buffer buffer)))
 
 (defun aws-athena-babel--write-query-to-file (query)
   "Write Athena QUERY string to file."
   (with-temp-file aws-athena-babel-query-file
     (insert query)))
+
+(defun aws-athena-babel--start-query-execution ()
+  "Start the Athena query and return the QueryExecutionId or raise an error."
+  (let* ((cmd (aws-athena-babel--build-start-query-command))
+         (cmd-output (string-trim (shell-command-to-string cmd))))
+    (if (or (string-empty-p cmd-output)
+            (string-match-p "could not be found" cmd-output)
+            (string-match-p "Unable to locate credentials" cmd-output)
+            (not (string-match-p "^[A-Za-z0-9-]+$" cmd-output)))
+        (user-error "Failed to start query: %s" cmd-output)
+      cmd-output)))
+
 (defun aws-athena-babel--build-start-query-command ()
   "Return the formatted AWS CLI command string to start an Athena query."
   (let ((reuse-cfg (if aws-athena-babel-result-reuse-enabled
@@ -145,45 +199,6 @@ Displays query progress and results in a dedicated monitor buffer."
             reuse-cfg
             aws-athena-babel-profile)))
 
-(defun aws-athena-babel--start-query-execution ()
-  "Start the Athena query and return the QueryExecutionId or raise an error."
-  (let* ((cmd (aws-athena-babel--build-start-query-command))
-         (cmd-output (string-trim (shell-command-to-string cmd))))
-    (if (or (string-empty-p cmd-output)
-            (string-match-p "could not be found" cmd-output)
-            (string-match-p "Unable to locate credentials" cmd-output)
-            (not (string-match-p "^[A-Za-z0-9-]+$" cmd-output)))
-        (user-error "Failed to start query: %s" cmd-output)
-      cmd-output)))
-
-(defun aws-athena-babel--prepare-monitor-buffer ()
-  "Create and populate the Athena monitor buffer."
-  (let ((buf (get-buffer-create "*Athena Monitor*")))
-    (with-current-buffer buf
-      (read-only-mode -1)
-      (erase-buffer)
-      (insert (propertize "Submitting Athena query...\n" 'face 'font-lock-keyword-face))
-      (insert (propertize "Press C-c C-k to cancel this query at any time.\n" 'face 'font-lock-doc-face))
-      (insert (propertize "You can also view your query history here:\n" 'face 'font-lock-doc-face))
-      (insert (propertize
-               (format "https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history\n\n"
-                       aws-athena-babel-console-region
-                       aws-athena-babel-console-region)
-               'face 'link))
-      (setq truncate-lines t)
-      (read-only-mode 1))
-    (aws-athena-babel--add-to-workspace buf)
-    buf))
-
-(defun aws-athena-babel--display-monitor-buffer (buffer)
-  "Display BUFFER based on fullscreen settings and add it to the current workspace."
-  (aws-athena-babel--add-to-workspace buffer)
-  (if aws-athena-babel-fullscreen-monitor-buffer
-      (progn
-        (switch-to-buffer buffer)
-        (delete-other-windows))
-    (display-buffer buffer)))
-
 (defun aws-athena-babel--setup-monitor-state (buffer query-id)
   "Add QUERY-ID to BUFFER and configure interaction keys."
   (with-current-buffer buffer
@@ -191,14 +206,15 @@ Displays query progress and results in a dedicated monitor buffer."
     (use-local-map aws-athena-babel-monitor-mode-map)
     (read-only-mode -1)
     (goto-char (point-max))
-    (insert (format "Query started with ID: %s\n" query-id))
+    (insert (format "\n\nQuery started with ID: %s\n" query-id))
     (insert (format "Polling every %d seconds...\n\n" aws-athena-babel-poll-interval))
     (read-only-mode 1)
     (goto-char (point-max))))
+
 (defun aws-athena-babel--start-status-polling (query-id)
   "Begin polling Athena query QUERY-ID status."
   (setq aws-athena-babel-query-status-timer
-        (run-at-time 1 aws-athena-babel-poll-interval
+        (run-at-time 0 aws-athena-babel-poll-interval
                      #'aws-athena-babel-monitor-query-status query-id)))
 
 (defun aws-athena-babel-monitor-query-status (query-id)
@@ -210,7 +226,7 @@ Displays query progress and results in a dedicated monitor buffer."
     (aws-athena-babel--append-monitor-output (get-buffer-create "*Athena Monitor*") output)
 
     (when (or (member status '("SUCCEEDED" "FAILED" "CANCELLED"))
-              (not status)) ;; ← catch nil or malformed response
+              (not status))
       (cancel-timer aws-athena-babel-query-status-timer)
       (setq aws-athena-babel-query-status-timer nil)
       (when query-id
@@ -225,7 +241,7 @@ Displays query progress and results in a dedicated monitor buffer."
            query-id aws-athena-babel-profile)))
 
 (defun aws-athena-babel--update-total-cost-if-needed (_status json-output)
-  "Update total cost and return it using current scanned bytes, if any."
+  "Update total cost using JSON-OUTPUT's current scanned bytes, if any."
   (let ((bytes (aws-athena-babel--extract-json-number json-output "DataScannedInBytes")))
     (when bytes
       (setq aws-athena-babel-total-cost (aws-athena-babel--calculate-query-cost bytes)))
@@ -247,7 +263,8 @@ Displays query progress and results in a dedicated monitor buffer."
             "\n")))
 
 (defun aws-athena-babel--format-status-details (json-output status cost)
-  "Return formatted detail section from JSON-OUTPUT, including reason, cost, timing, and errors."
+  "Return formatted detail section from JSON-OUTPUT, STATUS, and COST.
+Includes the reason, scanned data size, timing breakdown, and any error messages."
   (let ((reason (aws-athena-babel--extract-json-field json-output "StateChangeReason"))
         (bytes (aws-athena-babel--extract-json-number json-output "DataScannedInBytes"))
         (error-msg (aws-athena-babel--extract-json-field json-output "ErrorMessage")))
@@ -300,7 +317,8 @@ Displays query progress and results in a dedicated monitor buffer."
     (goto-char (point-max))))
 
 (defun aws-athena-babel--handle-query-completion (query-id buffer)
-  "Finalize Athena QUERY-ID completion in BUFFER by downloading and displaying results."
+  "Finalize Athena QUERY-ID completion in BUFFER.
+This is done by downloading and displaying results."
   (let* ((json-output (aws-athena-babel--fetch-query-json query-id))
          (total-ms (aws-athena-babel--extract-json-number json-output "TotalExecutionTimeInMillis"))
          (s3-uri (aws-athena-babel--query-result-path json-output))
@@ -330,24 +348,25 @@ Displays query progress and results in a dedicated monitor buffer."
   (aws-athena-babel--append-monitor-output
    buffer
    (propertize
-    (format "\nTotal Query Cost: $%.4f (Total Time: %.2f sec)\n"
+    (format "Total Query Cost: $%.4f (Total Time: %.2f sec)\n"
             aws-athena-babel-total-cost (/ total-ms 1000.0))
     'face 'font-lock-warning-face)))
 
 (defun aws-athena-babel--insert-query-links-and-notes (buffer csv-path query-id)
-  "Insert messages and links into BUFFER about query results."
+  "Insert messages and links into BUFFER.
+Use CSV-PATH and QUERY-ID from the Athena query results."
   (with-current-buffer buffer
     (read-only-mode -1)
     (goto-char (point-max))
     (insert (propertize
-             (format "\nQuery finished. Results saved to: %s\n" csv-path)
+             (format "Query finished. Results saved to: %s\n\n" csv-path)
              'face 'font-lock-function-name-face))
     (insert (propertize
-             "Press C-c C-c to view CSV results, or C-c C-j for JSON.\n"
+             "Press C-c C-c to view CSV results, C-c C-j for JSON. Press C-c C-l to open local file, C-c C-a for AWS link.\n"
              'face 'font-lock-doc-face))
     (when query-id
       (insert (propertize
-               (format "\nSpecific Query URL: https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history/%s\n"
+               (format "https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history/%s"
                        aws-athena-babel-console-region
                        aws-athena-babel-console-region
                        query-id)
@@ -356,7 +375,7 @@ Displays query progress and results in a dedicated monitor buffer."
 (defun aws-athena-babel--insert-console-style-results (buffer csv-path)
   "Insert Org-formatted Athena query results into BUFFER from CSV-PATH."
   (with-current-buffer buffer
-    (insert (propertize "\n--- Athena Console-style Results ---\n\n"
+    (insert (propertize "\n\n--- Athena Console-style Results ---\n\n"
                         'face '(:weight bold :underline t)))
     (insert (aws-athena-babel--format-csv-table csv-path))
     (read-only-mode 1)
@@ -404,7 +423,8 @@ Displays query progress and results in a dedicated monitor buffer."
              "\n"))
 
 (defun aws-athena-babel-show-json-results ()
-  "Parse the CSV output of an Athena query into JSON and display in a formatted buffer."
+  "Parse the CSV output of an Athena query into JSON.
+Display it in a formatted buffer."
   (interactive)
   (let* ((query-id (buffer-local-value 'aws-athena-babel-query-id (current-buffer)))
          (csv-path (format "/tmp/%s.csv" query-id)))
@@ -434,7 +454,6 @@ Displays query progress and results in a dedicated monitor buffer."
                         (buffer-string)))
          (lines (split-string csv-content "\n" t))
          (headers (aws-athena-babel--parse-csv-line (car lines)))
-         (data-lines (cdr lines))
          (json-objects (aws-athena-babel--csv-lines-to-json lines headers)))
     (insert (json-encode json-objects))
     (aws-athena-babel--sanitize-json-text)))
@@ -495,8 +514,9 @@ Return VALUE unchanged if not a string."
 
 (defun aws-athena-babel--csv-lines-to-json (lines headers)
   "Convert CSV LINES into a list of JSON objects using HEADERS.
-Each line is parsed into a hash table mapping header names to cleaned field values."
-  (cl-loop for line in (cdr lines) ; skip header line
+Each line is parsed into a hash table mapping header names.
+This is to cleaned field values."
+  (cl-loop for line in (cdr lines)
            for fields = (aws-athena-babel--parse-csv-line line)
            if (equal (length headers) (length fields))
            collect
@@ -509,7 +529,7 @@ Each line is parsed into a hash table mapping header names to cleaned field valu
            (message "Skipping malformed line: %s" line)))
 
 (defun aws-athena-babel-cancel-query ()
-  "Cancel the running Athena query from the monitor buffer."
+  "Cancel the running Athena query and change polling frequency to 0s."
   (interactive)
   (let ((query-id (buffer-local-value 'aws-athena-babel-query-id (current-buffer))))
     (if (not query-id)
@@ -520,7 +540,12 @@ Each line is parsed into a hash table mapping header names to cleaned field valu
 --query-execution-id %s \
 --profile %s"
                  query-id aws-athena-babel-profile))
-        (message "Cancellation requested.")))))
+        (message "Cancellation requested. Polling more frequently to detect state change...")
+
+        (when (timerp aws-athena-babel-query-status-timer)
+          (cancel-timer aws-athena-babel-query-status-timer))
+        (setq aws-athena-babel-query-status-timer
+              (run-at-time 0 1 #'aws-athena-babel-monitor-query-status query-id))))))
 
 (defun aws-athena-babel--extract-json-field (json key)
   "Extract string value for KEY from JSON string using a regex match."
@@ -560,13 +585,6 @@ Display with tab, newline, and quote escape sequences removed."
         (pop-to-buffer buf)
         (when aws-athena-babel-fullscreen-monitor-buffer
           (delete-other-windows))))))
-
-(defun aws-athena-babel--add-to-workspace (buffer)
-  "Add BUFFER to current workspace if persp-mode is active."
-  (when (and (featurep 'persp-mode)
-             (bound-and-true-p persp-mode)
-             (buffer-live-p buffer))
-    (persp-add-buffer buffer)))
 
 (defun aws-athena-babel--sanitize-json-text ()
   "Clean up escape sequences and quoted objects in the current buffer."
