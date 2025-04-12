@@ -263,7 +263,7 @@ Returns clickable Org links with full URL and file path."
 
 (defun aws-athena-babel--format-status-details (json-output status cost)
   "Return formatted detail section from JSON-OUTPUT, STATUS, and COST.
-Includes the reason, scanned data size, timing breakdown, and any error messages."
+Includes reason, scanned data size, timing breakdown, and any error messages."
   (let ((reason (aws-athena-babel--extract-json-field json-output "StateChangeReason"))
         (bytes (aws-athena-babel--extract-json-number json-output "DataScannedInBytes"))
         (error-msg (aws-athena-babel--extract-json-field json-output "ErrorMessage")))
