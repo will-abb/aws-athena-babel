@@ -88,6 +88,7 @@ If you're using `use-package` in your Emacs config, you can load `aws-athena-bab
 - **Org Table**: Console-style format based on Athena's CSV output.
 - **CSV**: Raw download from S3, shown in a dedicated buffer.
 - **JSON**: Parsed and cleaned from CSV into structured objects.
+*The queries and the outputs have solely been tested with cloudtrail buckets*
 
 ## License
 
