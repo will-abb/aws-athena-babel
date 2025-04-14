@@ -41,6 +41,7 @@
 
 ;;; Code:
 
+(require 'org)
 (require 'json)
 (require 'subr-x)
 
