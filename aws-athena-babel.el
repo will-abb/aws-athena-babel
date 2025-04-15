@@ -46,7 +46,8 @@
 (require 'subr-x)
 
 
-(defvar aws-athena-babel-query-file "/tmp/athena-query.sql"
+(defvar aws-athena-babel-query-file
+  (expand-file-name "athena-query.sql" (temporary-file-directory))
   "Path to the temporary file where the Athena SQL query is stored.")
 
 (defvar aws-athena-babel-output-location "s3://my-bucket/"
@@ -77,7 +78,8 @@ For example: \"s3://my-bucket/path/\".")
 (defvar aws-athena-babel-console-region "us-east-2"
   "AWS region used to construct Athena Console URLs.")
 
-(defvar aws-athena-babel-csv-output-dir "/tmp"
+(defvar aws-athena-babel-csv-output-dir
+  (temporary-file-directory)
   "Directory where downloaded Athena CSV result files will be saved.")
 
 (defvar aws-athena-babel-monitor-mode-map
@@ -566,7 +568,7 @@ This is to cleaned field values."
 Display with tab, newline, and quote escape sequences removed."
   (interactive)
   (let* ((query-id (buffer-local-value 'aws-athena-babel-query-id (current-buffer)))
-         (csv-path (format "/tmp/%s.csv" query-id)))
+         (csv-path (expand-file-name (format "%s.csv" query-id) (temporary-file-directory))))
     (if (not (file-exists-p csv-path))
         (message "CSV file not found: %s" csv-path)
       (let ((buf (get-buffer-create "*Athena Raw Results*")))
@@ -611,7 +613,7 @@ Display with tab, newline, and quote escape sequences removed."
   "Open the local CSV result file for the current Athena query."
   (interactive)
   (let* ((query-id (buffer-local-value 'aws-athena-babel-query-id (current-buffer)))
-         (csv-path (format "/tmp/%s.csv" query-id)))
+         (csv-path (expand-file-name (format "%s.csv" query-id) (temporary-file-directory))))
     (if (not (file-exists-p csv-path))
         (message "CSV result not found: %s" csv-path)
       (find-file csv-path))))
