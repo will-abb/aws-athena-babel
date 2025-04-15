@@ -45,6 +45,7 @@
 (require 'json)
 (require 'subr-x)
 
+(declare-function persp-add-buffer "persp-mode.el")
 
 (defvar aws-athena-babel-query-file
   (expand-file-name "athena-query.sql" (temporary-file-directory))
