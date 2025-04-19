@@ -429,7 +429,7 @@ Use CSV-PATH and QUERY-ID from the Athena query results."
 Display it in a formatted buffer."
   (interactive)
   (let* ((query-id (buffer-local-value 'aws-athena-babel-query-id (current-buffer)))
-         (csv-path (format "/tmp/%s.csv" query-id)))
+         (csv-path (expand-file-name (format "%s.csv" query-id) (temporary-file-directory))))
     (if (not (file-exists-p csv-path))
         (message "CSV file not found: %s" csv-path)
       (aws-athena-babel--render-json-buffer csv-path))))
