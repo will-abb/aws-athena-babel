@@ -429,7 +429,7 @@ Use CSV-PATH and QUERY-ID from the Athena query results."
 Display it in a formatted buffer."
   (interactive)
   (let* ((query-id (buffer-local-value 'aws-athena-babel-query-id (current-buffer)))
-         (csv-path (expand-file-name (format "%s.csv" query-id) (temporary-file-directory))))
+         (csv-path (expand-file-name (format "%s.csv" query-id) aws-athena-babel-csv-output-dir)))
     (if (not (file-exists-p csv-path))
         (message "CSV file not found: %s" csv-path)
       (aws-athena-babel--render-json-buffer csv-path))))
@@ -569,7 +569,7 @@ This is to cleaned field values."
 Display with tab, newline, and quote escape sequences removed."
   (interactive)
   (let* ((query-id (buffer-local-value 'aws-athena-babel-query-id (current-buffer)))
-         (csv-path (expand-file-name (format "%s.csv" query-id) (temporary-file-directory))))
+         (csv-path (expand-file-name (format "%s.csv" query-id) aws-athena-babel-csv-output-dir)))
     (if (not (file-exists-p csv-path))
         (message "CSV file not found: %s" csv-path)
       (let ((buf (get-buffer-create "*Athena Raw Results*")))
@@ -614,7 +614,7 @@ Display with tab, newline, and quote escape sequences removed."
   "Open the local CSV result file for the current Athena query."
   (interactive)
   (let* ((query-id (buffer-local-value 'aws-athena-babel-query-id (current-buffer)))
-         (csv-path (expand-file-name (format "%s.csv" query-id) (temporary-file-directory))))
+         (csv-path (expand-file-name (format "%s.csv" query-id) aws-athena-babel-csv-output-dir)))
     (if (not (file-exists-p csv-path))
         (message "CSV result not found: %s" csv-path)
       (find-file csv-path))))

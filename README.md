@@ -14,10 +14,15 @@
 - CSV and JSON views with dedicated keybindings
 - Supports result reuse with Athena Workgroups
 - Displays full Athena Console URLs for easy web access
+- Provides local raw result file (`/tmp/<query-id>.csv`) for inspection or scripting
+- Displays a direct AWS Console link to the query execution
+- Default CSV output directory is the system temporary directory (as returned by `temporary-file-directory`)
 - Keybindings for quick actions:
   - `C-c C-k`: Cancel running query
   - `C-c C-c`: Show raw CSV output
-  - `C-c C-j`: Show JSON output (for Cloudtrail Buckets)
+  - `C-c C-j`: Show JSON output (for CloudTrail buckets)
+  - `C-c C-a`: Open Athena Console link in browser
+  - `C-c C-l`: Open local CSV result in Emacs
 
 ## Requirements
 
@@ -64,8 +69,8 @@ If you're using `use-package` in your Emacs config, you can load `aws-athena-bab
         aws-athena-babel-result-reuse-enabled t
         aws-athena-babel-result-reuse-max-age 10080
         aws-athena-babel-console-region "us-east-1"
-        aws-athena-babel-csv-output-dir "/tmp")
-   ```
+        aws-athena-babel-csv-output-dir "/my-result-directory"))
+```
 
 ## Usage
 
@@ -81,14 +86,17 @@ If you're using `use-package` in your Emacs config, you can load `aws-athena-bab
 
 3. Monitor progress in `*Athena Monitor*`, view CSV or JSON with keybindings.
 
-4. Results are saved to `/tmp/<query-id>.csv` and also rendered in Org-mode format.
+4. Results are by default saved to `/tmp/<query-id>.csv` and also rendered in Org-mode table format.
 
 ## Output Rendering
 
 - **Org Table**: Console-style format based on Athena's CSV output.
 - **CSV**: Raw download from S3, shown in a dedicated buffer.
 - **JSON**: Parsed and cleaned from CSV into structured objects.
-*The queries and the outputs have solely been tested with cloudtrail buckets*
+- **Local CSV**: Saved to system temp dir and openable with `C-c C-l`
+- **Console Link**: Openable in browser via `C-c C-a`
+
+*The queries and the outputs have solely been tested with CloudTrail buckets.*
 
 ## License
 
