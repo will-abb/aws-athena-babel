@@ -5,9 +5,11 @@
 ;; Author: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Maintainer: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Created: April 05, 2025
-;; Version: 0.1.0
+;; Version: 1.1.1
+;; Package-Version: 1.1.1
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
+;; URL: https://github.com/will-abb/aws-athena-babel
 ;; Homepage: https://github.com/will-abb/aws-athena-babel
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -31,13 +33,29 @@
 ;; This package provides an Emacs interface for running AWS Athena
 ;; SQL queries directly from Org Babel source blocks. Queries are
 ;; submitted via the AWS CLI and monitored asynchronously in a
-;; dedicated buffer. Results can be displayed as CSV or JSON.
+;; dedicated buffer. Results can be displayed as CSV, Org tables, or JSON.
 
 ;; Features include:
-;; - Live polling and console-style output
-;; - CSV to JSON conversion
-;; - Result reuse via Athena workgroups
-;; - Integration with org-babel execution
+;; - Asynchronous query execution and live polling
+;; - Real-time execution status and cost estimation
+;; - Console-style Org table rendering of query results
+;; - CSV-to-JSON conversion with cleaning and pretty-printing
+;; - Full AWS Console URL for the running query
+;; - Local raw CSV file saved to system temporary directory
+;; - Result reuse support using Athena workgroups
+;; - Integrated keybindings for interacting with queries:
+;;   - C-c C-k: Cancel running query
+;;   - C-c C-c: Show raw CSV output
+;;   - C-c C-j: Show JSON output (especially useful for CloudTrail)
+;;   - C-c C-a: Open AWS Console link in browser
+;;   - C-c C-l: Open downloaded local CSV file in Emacs
+
+;; By default, result files are saved to the system temporary directory
+;; returned by `temporary-file-directory`. These CSV files are downloaded
+;; from S3 and can be opened directly or transformed into Org and JSON views.
+
+;; This package has been tested primarily with CloudTrail query outputs,
+;; but it supports any dataset that is queryable via Athena.
 
 ;;; Code:
 
