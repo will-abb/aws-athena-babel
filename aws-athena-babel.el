@@ -9,7 +9,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
 ;; Homepage: https://github.com/will-abb/aws-athena-babel
-;; License: GPL-3.0-or-later
+;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This file is part of aws-athena-babel.
 
