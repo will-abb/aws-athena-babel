@@ -5,8 +5,8 @@
 ;; Author: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Maintainer: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Created: April 05, 2025
-;; Version: 1.1.1
-;; Package-Version: 1.1.1
+;; Version: 1.1.2
+;; Package-Version: 1.1.2
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
 ;; URL: https://github.com/will-abb/aws-athena-babel
@@ -203,23 +203,26 @@ Returns clickable Org links with full URL and file path."
 (defun aws-athena-babel--build-start-query-command ()
   "Return the formatted AWS CLI command string to start an Athena query."
   (let ((reuse-cfg (if aws-athena-babel-result-reuse-enabled
-                       (format "--result-reuse-configuration \"ResultReuseByAgeConfiguration={Enabled=true,MaxAgeInMinutes=%d}\""
-                               aws-athena-babel-result-reuse-max-age)
+                       (format "--result-reuse-configuration %s"
+                               (shell-quote-argument
+                                (format "ResultReuseByAgeConfiguration={Enabled=true,MaxAgeInMinutes=%d}"
+                                        aws-athena-babel-result-reuse-max-age)))
                      "")))
     (format "aws athena start-query-execution \
---query-string file://%s \
+--query-string %s \
 --work-group %s \
 --query-execution-context Database=%s \
 --result-configuration OutputLocation=%s \
 %s \
 --profile %s \
 --output text --query 'QueryExecutionId'"
-            aws-athena-babel-query-file
-            aws-athena-babel-workgroup
-            aws-athena-babel-database
-            aws-athena-babel-output-location
+            (shell-quote-argument (format "file://%s" aws-athena-babel-query-file))
+            (shell-quote-argument aws-athena-babel-workgroup)
+            (shell-quote-argument aws-athena-babel-database)
+            (shell-quote-argument aws-athena-babel-output-location)
             reuse-cfg
-            aws-athena-babel-profile)))
+            (shell-quote-argument aws-athena-babel-profile))))
+
 
 (defun aws-athena-babel--setup-monitor-state (buffer query-id)
   "Add QUERY-ID to BUFFER and configure interaction keys."
@@ -259,7 +262,8 @@ Returns clickable Org links with full URL and file path."
   (shell-command-to-string
    (format "aws athena get-query-execution \
 --query-execution-id %s --profile %s"
-           query-id aws-athena-babel-profile)))
+           (shell-quote-argument query-id)
+           (shell-quote-argument aws-athena-babel-profile))))
 
 (defun aws-athena-babel--update-total-cost-if-needed (_status json-output)
   "Update total cost using JSON-OUTPUT's current scanned bytes, if any."
@@ -360,8 +364,10 @@ This is done by downloading and displaying results."
 
 (defun aws-athena-babel--download-csv-result (s3-uri local-path)
   "Download result file from S3-URI to LOCAL-PATH using AWS CLI."
-  (shell-command (format "aws s3 cp '%s' '%s' --profile %s"
-                         s3-uri local-path aws-athena-babel-profile)))
+  (shell-command (format "aws s3 cp %s %s --profile %s"
+                         (shell-quote-argument s3-uri)
+                         (shell-quote-argument local-path)
+                         (shell-quote-argument aws-athena-babel-profile))))
 
 (defun aws-athena-babel--render-query-summary (buffer total-ms)
   "Append cost and duration summary to BUFFER using TOTAL-MS milliseconds."
@@ -559,7 +565,8 @@ This is to cleaned field values."
          (format "aws athena stop-query-execution \
 --query-execution-id %s \
 --profile %s"
-                 query-id aws-athena-babel-profile))
+                 (shell-quote-argument query-id)
+                 (shell-quote-argument aws-athena-babel-profile)))
         (message "Cancellation requested. Polling more frequently to detect state change...")
 
         (when (timerp aws-athena-babel-query-status-timer)
