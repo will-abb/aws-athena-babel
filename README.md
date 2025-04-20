@@ -4,6 +4,8 @@
 
 `aws-athena-babel` is an Emacs package that allows you to write and execute AWS Athena SQL queries from Org-mode source blocks using Org Babel. It leverages the AWS CLI to submit queries, monitors their status in real time, and displays results in both CSV and JSON formats.
 
+[See a video demonstration](https://youtu.be/2VoVpH3ceG0)
+
 ## Features
 
 - Submit Athena queries via AWS CLI directly from Org Babel blocks
