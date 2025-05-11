@@ -1,8 +1,8 @@
-# aws-athena-babel
+# ob-athena
 
 **Run AWS Athena queries directly from Org Babel in Emacs.**
 
-`aws-athena-babel` is an Emacs package that allows you to write and execute AWS Athena SQL queries from Org-mode source blocks using Org Babel. It leverages the AWS CLI to submit queries, monitors their status in real time, and displays results in both CSV and JSON formats.
+`ob-athena` is an Emacs package that allows you to write and execute AWS Athena SQL queries from Org-mode source blocks using Org Babel. It leverages the AWS CLI to submit queries, monitors their status in real time, and displays results in both CSV and JSON formats.
 
 [See a video demonstration](https://youtu.be/2VoVpH3ceG0)
 
@@ -40,8 +40,8 @@
 Add the following to your Doom Emacs `packages.el`:
 
 ```emacs-lisp
-(package! aws-athena-babel
-  :recipe (:host github :repo "will-abb/aws-athena-babel"))
+(package! ob-athena
+  :recipe (:host github :repo "will-abb/ob-athena"))
 ```
 
 Then in your `config.el`:
@@ -55,23 +55,23 @@ Then same as below but `use-package!`
 
 ### Regular Emacs
 
-If you're using `use-package` in your Emacs config, you can load `aws-athena-babel` like this:
+If you're using `use-package` in your Emacs config, you can load `ob-athena` like this:
 
 ```emacs-lisp
-(use-package aws-athena-babel
-  :load-path "~/.emacs.d/aws-athena-babel"
+(use-package ob-athena
+  :load-path "~/.emacs.d/ob-athena"
   :commands (org-babel-execute:athena)
   :config
-  (setq aws-athena-babel-output-location "s3://your-bucket/path/"
-        aws-athena-babel-workgroup "primary"
-        aws-athena-babel-profile "default"
-        aws-athena-babel-database "default"
-        aws-athena-babel-poll-interval 3
-        aws-athena-babel-fullscreen-monitor-buffer t
-        aws-athena-babel-result-reuse-enabled t
-        aws-athena-babel-result-reuse-max-age 10080
-        aws-athena-babel-console-region "us-east-1"
-        aws-athena-babel-csv-output-dir "/my-result-directory"))
+  (setq ob-athena-output-location "s3://your-bucket/path/"
+        ob-athena-workgroup "primary"
+        ob-athena-profile "default"
+        ob-athena-database "default"
+        ob-athena-poll-interval 3
+        ob-athena-fullscreen-monitor-buffer t
+        ob-athena-result-reuse-enabled t
+        ob-athena-result-reuse-max-age 10080
+        ob-athena-console-region "us-east-1"
+        ob-athena-csv-output-dir "/my-result-directory"))
 ```
 
 ## Usage
