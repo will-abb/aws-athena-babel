@@ -1,4 +1,4 @@
-;;; aws-athena-babel.el --- Run AWS Athena queries from Org Babel -*- lexical-binding: t; -*-
+;;; ob-athena.el --- Run AWS Athena queries from Org Babel -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025 Williams Bosch-Bello
 
@@ -13,7 +13,7 @@
 ;; Homepage: https://github.com/will-abb/aws-athena-babel
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
-;; This file is part of aws-athena-babel.
+;; This file is part of ob-athena.
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -30,8 +30,8 @@
 
 ;;; Commentary:
 
-;; This package provides an Emacs interface for running AWS Athena
-;; SQL queries directly from Org Babel source blocks. Queries are
+;; Org Babel support for AWS Athena. Provides a source block backend
+;; to evaluate Athena SQL queries from Org-mode using the AWS CLI.
 ;; submitted via the AWS CLI and monitored asynchronously in a
 ;; dedicated buffer. Results can be displayed as CSV, Org tables, or JSON.
 
@@ -644,5 +644,5 @@ Display with tab, newline, and quote escape sequences removed."
         (message "CSV result not found: %s" csv-path)
       (find-file csv-path))))
 
-(provide 'aws-athena-babel)
-;;; aws-athena-babel.el ends here
+(provide 'ob-athena)
+;;; ob-athena.el ends here
