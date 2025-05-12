@@ -12,17 +12,19 @@
 - Asynchronous query monitoring in a dedicated `*Athena Monitor*` buffer
 - Live status updates with execution metrics and cost estimation
 - Console-style result rendering in Org-mode tables
-- JSON conversion from CSV output
+- JSON conversion from CSV output using the Miller (`mlr`) tool
 - CSV and JSON views with dedicated keybindings
 - Supports result reuse with Athena Workgroups
 - Displays full Athena Console URLs for easy web access
 - Provides local raw result file (`/tmp/<query-id>.csv`) for inspection or scripting
-- Displays a direct AWS Console link to the query execution
-- Default CSV output directory is the system temporary directory (as returned by `temporary-file-directory`)
+- Accepts full Org Babel header arguments:
+  - `:aws-profile`, `:database`, `:s3-output-location`, `:workgroup`, etc.
+  - Also supports execution configuration like `:poll-interval`, `:fullscreen`, etc.
+- Automatically replaces `${var}` placeholders in queries using `:var` bindings
 - Keybindings for quick actions:
   - `C-c C-k`: Cancel running query
   - `C-c C-c`: Show raw CSV output
-  - `C-c C-j`: Show JSON output (for CloudTrail buckets)
+  - `C-c C-j`: Show JSON output (requires Miller `mlr`)
   - `C-c C-a`: Open Athena Console link in browser
   - `C-c C-l`: Open local CSV result in Emacs
 
@@ -32,6 +34,7 @@
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html)
 - Properly configured AWS credentials (via profile or environment)
 - Athena output location configured in S3
+- If you plan to use the json formater, install [Miller Tool](https://github.com/johnkerl/miller)
 
 ## Installation
 
@@ -76,25 +79,26 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
 
 ## Usage
 
-1. In an Org-mode buffer, insert a source block:
-
-    ```org
-    #+begin_src athena
-    SELECT * FROM your_table LIMIT 10;
-    #+end_src
-    ```
-
-2. Run the block using `C-c C-c` inside the block.
-
-3. Monitor progress in `*Athena Monitor*`, view CSV or JSON with keybindings.
-
-4. Results are by default saved to `/tmp/<query-id>.csv` and also rendered in Org-mode table format.
-
+1. In an Org-mode buffer, insert a source block with header arguments on the same line:
+   ```org
+   #+begin_src athena :aws-profile "default" :database "yourdb" :s3-output-location "s3://your-bucket/path/" :workgroup "primary" :poll-interval 3 :fullscreen t :result-reuse-enabled t :result-reuse-max-age 10080 :console-region "us-east-1" :var user="john.doe@example.com"
+   SELECT * FROM your_table WHERE user = '${user}' LIMIT 10;
+   #+end_src
+   ```
+2. Run the block using `C-c C-c` inside the source block.
+3. Query progress and metrics appear in the `*Athena Monitor*` buffer.
+4. Press:
+   * `C-c C-c` to view raw CSV
+   * `C-c C-j` to view JSON output (parsed using `mlr`)
+   * `C-c C-l` to open the local CSV result file
+   * `C-c C-a` to open the Athena Console in your browser
+5. Results are saved by default to `/tmp/<query-id>.csv` and rendered as:
+*You do not have to specify header values if you set them in your Emacs configuration file. They are they just to override the default values*
 ## Output Rendering
 
 - **Org Table**: Console-style format based on Athena's CSV output.
 - **CSV**: Raw download from S3, shown in a dedicated buffer.
-- **JSON**: Parsed and cleaned from CSV into structured objects.
+- **JSON**: Automatically converted using the `mlr` tool (`mlr --icsv --ojson`).
 - **Local CSV**: Saved to system temp dir and openable with `C-c C-l`
 - **Console Link**: Openable in browser via `C-c C-a`
 
