@@ -65,21 +65,24 @@
 
 (declare-function persp-add-buffer "persp-mode.el")
 
+(defvar-local ob-athena--context nil
+  "Buffer-local context alist used for Athena query execution and tracking.")
+
 (defvar ob-athena-query-file
   (expand-file-name "athena-query.sql" (temporary-file-directory))
   "Path to the temporary file where the Athena SQL query is stored.")
 
-(defvar ob-athena-output-location "s3://my-bucket/"
+(defvar ob-athena-s3-output-location "s3://my-bucket/"
   "S3 location where Athena stores query results.
 For example: \"s3://my-bucket/path/\".")
 
-(defvar ob-athena-workgroup "primary"
+(defvar ob-athena-workgroup "my-athena-primary-workgroup"
   "Athena workgroup to use.")
 
-(defvar ob-athena-profile "athena-aws-profile"
+(defvar ob-athena-profile "my-aws-athena-profile"
   "AWS CLI profile to use for Athena queries.")
 
-(defvar ob-athena-database "default"
+(defvar ob-athena-database "my-athena-database"
   "Athena database to query.")
 
 (defvar ob-athena-poll-interval 3
@@ -94,7 +97,7 @@ For example: \"s3://my-bucket/path/\".")
 (defvar ob-athena-result-reuse-max-age 10080
   "Maximum age in minutes of previous Athena query results to reuse.")
 
-(defvar ob-athena-console-region "us-east-2"
+(defvar ob-athena-console-region "my-aws-region"
   "AWS region used to construct Athena Console URLs.")
 
 (defvar ob-athena-csv-output-dir
@@ -118,6 +121,19 @@ Internal use only; do not modify directly.")
 (defvar ob-athena-query-status-timer nil
   "Timer object used internally to poll the status of therunning Athena query.
 Do not modify directly.")
+
+(defconst ob-athena--default-context
+  `((output-location . ,ob-athena-s3-output-location)
+    (workgroup . ,ob-athena-workgroup)
+    (profile . ,ob-athena-profile)
+    (database . ,ob-athena-database)
+    (poll-interval . ,ob-athena-poll-interval)
+    (console-region . ,ob-athena-console-region)
+    (csv-output-dir . ,ob-athena-csv-output-dir)
+    (result-reuse-enabled . ,ob-athena-result-reuse-enabled)
+    (result-reuse-max-age . ,ob-athena-result-reuse-max-age)
+    (fullscreen-monitor-buffer . ,ob-athena-fullscreen-monitor-buffer))
+  "Default context for Athena execution, merged with Org Babel header arguments.")
 
 (add-to-list 'org-src-lang-modes '("athena" . sql))
 
