@@ -632,18 +632,6 @@ Display with tab, newline, and quote escape sequences removed."
         (when ob-athena-fullscreen-monitor-buffer
           (delete-other-windows))))))
 
-(defun ob-athena--sanitize-json-text ()
-  "Clean up escape sequences and quoted objects in the current buffer."
-  (goto-char (point-min))
-  (while (search-forward "\\" nil t)
-    (replace-match "" nil t))
-  (goto-char (point-min))
-  (while (search-forward "\"{" nil t)
-    (replace-match "{" nil t))
-  (goto-char (point-min))
-  (while (search-forward "}\"" nil t)
-    (replace-match "}" nil t)))
-
 (defun ob-athena-open-aws-link ()
   "Open the AWS Console link for the current Athena query."
   (interactive)
