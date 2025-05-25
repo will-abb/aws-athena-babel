@@ -199,10 +199,10 @@ Returns clickable Org links with full URL and file path."
              (buffer-live-p buffer))
     (persp-add-buffer buffer)))
 
-(defun ob-athena--display-monitor-buffer (buffer)
-  "Display BUFFER based on fullscreen settings and add it to the current workspace."
+(defun ob-athena--display-monitor-buffer (buffer ctx)
+  "Display BUFFER based on fullscreen settings in CTX and add it to the current workspace."
   (ob-athena--add-to-workspace buffer)
-  (if ob-athena-fullscreen-monitor-buffer
+  (if (alist-get 'fullscreen ctx)
       (progn
         (switch-to-buffer buffer)
         (delete-other-windows))
