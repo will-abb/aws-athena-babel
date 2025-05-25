@@ -1,4 +1,4 @@
-;;; ob-athena-tests.el --- Tests for ob-athena JSON parsing -*- lexical-binding: t; -*-
+;;; ob-athena-cli-parsing-tests.el --- Tests for ob-athena JSON parsing -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'org)
@@ -23,23 +23,23 @@
 
 (ert-deftest ob-athena-parse-state ()
   "Test extraction of query execution state from real CLI JSON."
-  (let ((json (ob-athena--load-sample-json "fixtures/query-success-select-id-element-datavalue.json")))
+  (let ((json (ob-athena--load-sample-json "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json")))
     (should (string= (ob-athena--extract-json-field json "State") "SUCCEEDED"))))
 
 (ert-deftest ob-athena-parse-bytes-scanned ()
   "Test extraction of DataScannedInBytes field."
-  (let ((json (ob-athena--load-sample-json "fixtures/query-success-select-id-element-datavalue.json")))
+  (let ((json (ob-athena--load-sample-json "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json")))
     (should (= (ob-athena--extract-json-number json "DataScannedInBytes") 4746704))))
 
 (ert-deftest ob-athena-parse-query-id ()
   "Test extraction of QueryExecutionId."
-  (let ((json (ob-athena--load-sample-json "fixtures/query-success-select-id-element-datavalue.json")))
+  (let ((json (ob-athena--load-sample-json "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json")))
     (should (string= (ob-athena--extract-json-field json "QueryExecutionId")
                      "43977ec3-ba3e-4874-912a-73f426532ffb"))))
 
 (ert-deftest ob-athena-parse-output-location ()
   "Test parsing of the S3 output location."
-  (let ((json (ob-athena--load-sample-json "fixtures/query-success-select-id-element-datavalue.json")))
+  (let ((json (ob-athena--load-sample-json "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json")))
     (should (string= (ob-athena--extract-json-field json "OutputLocation")
                      "s3://athena-query-results-005343251202/43977ec3-ba3e-4874-912a-73f426532ffb.csv"))))
 
@@ -63,13 +63,13 @@
 
 (ert-deftest ob-athena-extract-query-result-path ()
   "Test extraction of OutputLocation from Athena query JSON."
-  (let ((json (ob-athena--load-sample-json "fixtures/query-success-select-id-element-datavalue.json")))
+  (let ((json (ob-athena--load-sample-json "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json")))
     (should (string= (ob-athena--query-result-path json)
                      "s3://athena-query-results-005343251202/43977ec3-ba3e-4874-912a-73f426532ffb.csv"))))
 
 (ert-deftest ob-athena-build-timing-section-content ()
   "Ensure timing section is rendered with expected substrings."
-  (let ((json (ob-athena--load-sample-json "fixtures/query-success-select-id-element-datavalue.json"))
+  (let ((json (ob-athena--load-sample-json "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json"))
         (output nil))
     (setq output (ob-athena--build-timing-section json))
     (should (stringp output))
@@ -77,5 +77,5 @@
     (should (string-match "Total Time: 3\\.67 sec" output))
     (should (string-match "Queue Time: 0\\.11 sec" output))))
 
-(provide 'ob-athena-tests)
-;;; ob-athena-tests.el ends here
+(provide 'ob-athena-cli-parsing-tests)
+;;; ob-athena-cli-parsing-tests.el ends here
