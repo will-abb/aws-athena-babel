@@ -663,5 +663,12 @@ Display with tab, newline, and quote escape sequences removed."
         (message "CSV result not found: %s" csv-path)
       (find-file csv-path))))
 
+(defun ob-athena--update-total-cost-if-needed (_status json-output)
+  "Update total cost using JSON-OUTPUT's current scanned bytes, if any."
+  (let ((bytes (ob-athena--extract-json-number json-output "DataScannedInBytes")))
+    (when bytes
+      (setq ob-athena-total-cost (ob-athena--calculate-query-cost bytes)))
+    ob-athena-total-cost))
+
 (provide 'ob-athena)
 ;;; ob-athena.el ends here
