@@ -529,24 +529,30 @@ This is done by downloading and displaying results."
             (delete-other-windows)))))))
 
 (defun ob-athena-cancel-query ()
-  "Cancel the running Athena query and change polling frequency to 0s."
+  "Cancel the running Athena query if still running."
   (interactive)
-  (let ((query-id (buffer-local-value 'ob-athena-query-id (current-buffer))))
-    (if (not query-id)
-        (message "No query ID found in this buffer.")
+  (let ((query-id (buffer-local-value 'ob-athena-query-id (current-buffer)))
+        (ctx (buffer-local-value 'ob-athena--context (current-buffer))))
+    (if (or (not query-id)
+            (buffer-local-value 'ob-athena-query-completed (current-buffer)))
+        (message "Query is already completed or invalid.")
       (when (yes-or-no-p (format "Cancel Athena query %s? " query-id))
-        (shell-command
-         (format "aws athena stop-query-execution \
+        (let ((profile (alist-get 'aws-profile ctx))
+              (region (alist-get 'console-region ctx)))
+          (shell-command
+           (format "aws athena stop-query-execution \
 --query-execution-id %s \
+--region %s \
 --profile %s"
-                 (shell-quote-argument query-id)
-                 (shell-quote-argument ob-athena-profile)))
+                   (shell-quote-argument query-id)
+                   (shell-quote-argument region)
+                   (shell-quote-argument profile))))
         (message "Cancellation requested. Polling more frequently to detect state change...")
-
         (when (timerp ob-athena-query-status-timer)
           (cancel-timer ob-athena-query-status-timer))
         (setq ob-athena-query-status-timer
-              (run-at-time 0 1 #'ob-athena-monitor-query-status query-id))))))
+              (run-at-time 0 1 #'ob-athena-monitor-query-status query-id ctx))))))
+
 
 (defun ob-athena--extract-json-field (json key)
   "Extract string value for KEY from JSON string using a regex match."
