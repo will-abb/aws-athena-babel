@@ -144,13 +144,15 @@ Do not modify directly.")
 (defun org-babel-execute:athena (body params)
   "Execute an Athena SQL query block from Org Babel using BODY and PARAMS.
 Returns clickable Org links with full URL and file path."
-  (let* ((query-id (ob-athena-query-executor body))
+  (let* ((ctx (ob-athena--build-context params))
+         (expanded-body (org-babel-expand-body:athena body params))
+         (query-id (ob-athena-query-executor expanded-body ctx))
          (console-url (format "https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history/%s"
-                              ob-athena-console-region
-                              ob-athena-console-region
+                              (alist-get 'console-region ctx)
+                              (alist-get 'console-region ctx)
                               query-id))
          (csv-path (format "%s/%s.csv"
-                           (directory-file-name ob-athena-csv-output-dir)
+                           (directory-file-name (alist-get 'csv-output-dir ctx))
                            query-id)))
     (list
      "Query submitted. View:"
@@ -212,8 +214,7 @@ Returns clickable Org links with full URL and file path."
       (insert (propertize "You can also view your query history here:\n" 'face 'font-lock-doc-face))
       (insert (propertize
                (format "https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history"
-                       ob-athena-console-region
-                       ob-athena-console-region)
+                       region region)
                'face 'link))
       (setq truncate-lines t)
       (read-only-mode 1))
@@ -241,9 +242,9 @@ Returns clickable Org links with full URL and file path."
   (with-temp-file ob-athena-query-file
     (insert query)))
 
-(defun ob-athena--start-query-execution ()
-  "Start the Athena query and return the QueryExecutionId or raise an error."
-  (let* ((cmd (ob-athena--build-start-query-command))
+(defun ob-athena--start-query-execution (ctx)
+  "Start the Athena query using CTX and return the QueryExecutionId or raise an error."
+  (let* ((cmd (ob-athena--build-start-query-command ctx))
          (cmd-output (string-trim (shell-command-to-string cmd))))
     (if (or (string-empty-p cmd-output)
             (string-match-p "could not be found" cmd-output)
@@ -393,33 +394,37 @@ Includes reason, scanned data size, timing breakdown, and any error messages."
     (read-only-mode 1)
     (goto-char (point-max))))
 
-(defun ob-athena--handle-query-completion (query-id buffer)
-  "Finalize Athena QUERY-ID completion in BUFFER.
+(defun ob-athena--handle-query-completion (query-id buffer ctx)
+  "Finalize Athena QUERY-ID completion in BUFFER using CTX.
 This is done by downloading and displaying results."
-  (let* ((json-output (ob-athena--fetch-query-json query-id))
+  (let* ((json-output (ob-athena--fetch-query-json query-id ctx))
          (total-ms (ob-athena--extract-json-number json-output "TotalExecutionTimeInMillis"))
          (s3-uri (ob-athena--query-result-path json-output))
-         (csv-path (expand-file-name (format "%s.csv" query-id)
-                                     ob-athena-csv-output-dir)))
-
+         (csv-dir (alist-get 'csv-output-dir ctx))
+         (csv-path (expand-file-name (format "%s.csv" query-id) csv-dir)))
     (ob-athena--render-query-summary buffer total-ms)
-
     (when s3-uri
-      (ob-athena--download-csv-result s3-uri csv-path)
-      (ob-athena--insert-query-links-and-notes buffer csv-path query-id)
-      (ob-athena--insert-console-style-results buffer csv-path))))
+      (ob-athena--download-csv-result s3-uri csv-path ctx)
+      (ob-athena--insert-query-links-and-notes buffer csv-path query-id ctx)
+      (ob-athena--insert-console-style-results buffer csv-path)))
+  (with-current-buffer buffer
+    (setq-local ob-athena-query-completed t)))
 
 (defun ob-athena--query-result-path (json-output)
   "Extract S3 output location URI from Athena JSON-OUTPUT."
   (when (string-match "\"OutputLocation\": \"\\([^\"]+\\)\"" json-output)
     (match-string 1 json-output)))
 
-(defun ob-athena--download-csv-result (s3-uri local-path)
-  "Download result file from S3-URI to LOCAL-PATH using AWS CLI."
-  (shell-command (format "aws s3 cp %s %s --profile %s"
-                         (shell-quote-argument s3-uri)
-                         (shell-quote-argument local-path)
-                         (shell-quote-argument ob-athena-profile))))
+(defun ob-athena--download-csv-result (s3-uri local-path ctx)
+  "Download result file from S3-URI to LOCAL-PATH using AWS CLI and CTX."
+  (let ((profile (alist-get 'aws-profile ctx))
+        (region (alist-get 'console-region ctx)))
+    (shell-command
+     (format "aws s3 cp %s %s --region %s --profile %s"
+             (shell-quote-argument s3-uri)
+             (shell-quote-argument local-path)
+             (shell-quote-argument region)
+             (shell-quote-argument profile)))))
 
 (defun ob-athena--render-query-summary (buffer total-ms)
   "Append cost and duration summary to BUFFER using TOTAL-MS milliseconds."
@@ -430,25 +435,23 @@ This is done by downloading and displaying results."
             ob-athena-total-cost (/ total-ms 1000.0))
     'face 'font-lock-warning-face)))
 
-(defun ob-athena--insert-query-links-and-notes (buffer csv-path query-id)
-  "Insert messages and links into BUFFER.
-Use CSV-PATH and QUERY-ID from the Athena query results."
-  (with-current-buffer buffer
-    (read-only-mode -1)
-    (goto-char (point-max))
-    (insert (propertize
-             (format "Query finished. Results saved to: %s\n\n" csv-path)
-             'face 'font-lock-function-name-face))
-    (insert (propertize
-             "Press C-c C-c to view CSV results, C-c C-j for JSON. Press C-c C-l to open local file, C-c C-a for AWS link.\n"
-             'face 'font-lock-doc-face))
-    (when query-id
+(defun ob-athena--insert-query-links-and-notes (buffer csv-path query-id ctx)
+  "Insert messages and links into BUFFER using CSV-PATH, QUERY-ID, and CTX."
+  (let ((region (alist-get 'console-region ctx)))
+    (with-current-buffer buffer
+      (read-only-mode -1)
+      (goto-char (point-max))
       (insert (propertize
-               (format "https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history/%s"
-                       ob-athena-console-region
-                       ob-athena-console-region
-                       query-id)
-               'face 'link)))))
+               (format "Query finished. Results saved to: %s\n\n" csv-path)
+               'face 'font-lock-function-name-face))
+      (insert (propertize
+               "Press C-c C-c to view CSV results, C-c C-j for JSON. Press C-c C-l to open local file, C-c C-a for AWS link.\n"
+               'face 'font-lock-doc-face))
+      (when query-id
+        (insert (propertize
+                 (format "https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history/%s"
+                         region region query-id)
+                 'face 'link))))))
 
 (defun ob-athena--insert-console-style-results (buffer csv-path)
   "Insert Org-formatted Athena query results into BUFFER from CSV-PATH."
