@@ -46,8 +46,9 @@
   (with-temp-file ob-athena-query-file
     (insert query))
   (when-let ((id (bound-and-true-p ob-athena-query-id)))
-    (let ((archive-path (expand-file-name (format "tests/fixtures/%s-expanded-query.sql" id)
-                                          user-emacs-directory)))
+    (let ((archive-path (expand-file-name
+                         (format "tests/fixtures/%s-expanded-query.sql" id)
+                         default-directory)))
       (with-temp-file archive-path
         (insert query)))))
 
@@ -60,6 +61,19 @@
     (should (string-match "SELECT id, element, datavalue" query))
     (should (string-match "FROM original_csv" query))
     (should (string-match "LIMIT 10" query))))
+
+(ert-deftest ob-athena-build-context-without-headers ()
+  "Ensure default context keys are populated even when no headers are provided."
+  (let* ((params nil)
+         (ctx (ob-athena--build-context params))
+         (expected-keys
+          '(output-location workgroup profile database poll-interval
+            console-region csv-output-dir result-reuse-enabled
+            result-reuse-max-age fullscreen-monitor-buffer)))
+    (dolist (key expected-keys)
+      (should (alist-get key ctx)))
+    (should (numberp (alist-get 'poll-interval ctx)))
+    (should (memq (alist-get 'result-reuse-enabled ctx) '(t nil)))))
 
 (provide 'ob-athena-babel-parsing-tests)
 ;;; ob-athena-babel-parsing-tests.el ends here
