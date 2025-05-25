@@ -1,0 +1,52 @@
+[
+{
+  "id": "US1TXGV0021",
+  "element": "PRCP",
+  "datavalue": 0
+},
+{
+  "id": "US1TXGV0021",
+  "element": "SNOW",
+  "datavalue": 0
+},
+{
+  "id": "US1KSSG0036",
+  "element": "PRCP",
+  "datavalue": 0
+},
+{
+  "id": "GME00126430",
+  "element": "TMAX",
+  "datavalue": -22
+},
+{
+  "id": "GME00126430",
+  "element": "TMIN",
+  "datavalue": -124
+},
+{
+  "id": "GME00126430",
+  "element": "PRCP",
+  "datavalue": 0
+},
+{
+  "id": "GME00126430",
+  "element": "SNWD",
+  "datavalue": 30
+},
+{
+  "id": "ASN00041495",
+  "element": "PRCP",
+  "datavalue": 70
+},
+{
+  "id": "ASN00099002",
+  "element": "PRCP",
+  "datavalue": 0
+},
+{
+  "id": "US1KSMG0005",
+  "element": "PRCP",
+  "datavalue": 10
+}
+]
