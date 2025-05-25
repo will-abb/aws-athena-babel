@@ -165,12 +165,40 @@ Returns clickable Org links with full URL and file path."
         (let ((key (intern (substring (symbol-name (car pair)) 1))))
           (setf (alist-get key ctx nil 'remove #'eq) (cdr pair)))))))
 
+(defun org-babel-expand-body:athena (body params)
+  "Expand BODY with PARAMS, replacing ${var} using Org Babel :var arguments."
+  (message ">>>>> Running custom org-babel-expand-body:athena with params: %S" params)
+  (let ((expanded body))
+    (message ">>>>> BEFORE: %s" body)
+    ;; Extract all `:var` bindings
+    (dolist (param params)
+      (when (and (consp param) (eq (car param) :var))
+        (let* ((binding (cdr param))
+               (name (symbol-name (car binding)))
+               (value (cdr binding))
+               (replacement (cond
+                             ((stringp value) (replace-regexp-in-string "^\"\\|\"$" "" value))
+                             ((symbolp value) (symbol-name value))
+                             (t (format "%s" value))))
+               (pattern (format "${%s}" name)))
+          (setq expanded
+                (replace-regexp-in-string
+                 (regexp-quote pattern)
+                 replacement
+                 expanded nil 'literal)))))
+    (message ">>>>> AFTER: %s" expanded)
+    expanded))
+
+
+(defun ob-athena-query-executor (query ctx)
+  "Submit Athena QUERY using CTX and stream live status to *Athena Monitor* buffer."
+  (let ((monitor-buffer (ob-athena--prepare-monitor-buffer ctx))
         (query-id nil))
-    (ob-athena--display-monitor-buffer monitor-buffer)
+    (ob-athena--display-monitor-buffer monitor-buffer ctx)
     (ob-athena--write-query-to-file query)
-    (setq query-id (ob-athena--start-query-execution))
-    (ob-athena--setup-monitor-state monitor-buffer query-id)
-    (ob-athena--start-status-polling query-id)
+    (setq query-id (ob-athena--start-query-execution ctx))
+    (ob-athena--setup-monitor-state monitor-buffer query-id ctx)
+    (ob-athena--start-status-polling query-id ctx)
     query-id))
 
 (defun ob-athena--prepare-monitor-buffer ()
