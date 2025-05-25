@@ -44,7 +44,7 @@
 
 (ert-deftest ob-athena-show-csv-results-works ()
   "Simulate CSV result display in user buffer."
-  (let ((ob-athena-csv-output-dir "tests/fixtures"))
+  (let ((ob-athena-csv-output-dir "fixtures"))
     (with-current-buffer (get-buffer-create "*Athena Monitor*")
       (setq-local ob-athena-query-id test-query-id)
       (ob-athena-show-csv-results)
@@ -54,7 +54,7 @@
 
 (ert-deftest ob-athena-show-json-results-generates-buffer ()
   "Test JSON conversion from CSV using mlr."
-  (let ((ob-athena-csv-output-dir "tests/fixtures"))
+  (let ((ob-athena-csv-output-dir "fixtures"))
     (when (executable-find "mlr")
       (with-current-buffer (get-buffer-create "*Athena Monitor*")
         (setq-local ob-athena-query-id test-query-id)
