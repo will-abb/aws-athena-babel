@@ -504,110 +504,29 @@ This is done by downloading and displaying results."
              "\n"))
 
 (defun ob-athena-show-json-results ()
-  "Parse the CSV output of an Athena query into JSON.
-Display it in a formatted buffer."
+  "Convert Athena CSV result to JSON using mlr and show it in a formatted buffer."
   (interactive)
   (let* ((query-id (buffer-local-value 'ob-athena-query-id (current-buffer)))
-         (csv-path (expand-file-name (format "%s.csv" query-id) ob-athena-csv-output-dir)))
+         (csv-path (expand-file-name (format "%s.csv" query-id) ob-athena-csv-output-dir))
+         (json-path (expand-file-name (format "%s.json" query-id) ob-athena-csv-output-dir))
+         (json-buf (get-buffer-create "*Athena JSON Results*")))
     (if (not (file-exists-p csv-path))
         (message "CSV file not found: %s" csv-path)
-      (ob-athena--render-json-buffer csv-path))))
-
-(defun ob-athena--render-json-buffer (csv-path)
-  "Render a new buffer showing JSON results parsed from CSV-PATH."
-  (let ((json-buf (get-buffer-create "*Athena JSON Results*")))
-    (with-current-buffer json-buf
-      (ob-athena--add-to-workspace json-buf)
-      (erase-buffer)
-      (js-mode)
-      (ob-athena--insert-clean-json csv-path)
-      (goto-char (point-min))
-      (json-pretty-print-buffer)
-      (goto-char (point-min)))
-    (pop-to-buffer json-buf)
-    (when ob-athena-fullscreen-monitor-buffer
-      (delete-other-windows))))
-
-(defun ob-athena--insert-clean-json (csv-path)
-  "Insert JSON-encoded data converted from CSV at CSV-PATH into current buffer."
-  (let* ((csv-content (with-temp-buffer
-                        (insert-file-contents csv-path)
-                        (buffer-string)))
-         (lines (split-string csv-content "\n" t))
-         (headers (ob-athena--parse-csv-line (car lines)))
-         (json-objects (ob-athena--csv-lines-to-json lines headers)))
-    (insert (json-encode json-objects))
-    (ob-athena--sanitize-json-text)))
-
-(defun ob-athena--parse-csv-line (line)
-  "Parse a single CSV LINE into a list of fields.
-Handles quoted fields, escaped quotes, and unquoted values."
-  (let ((pos 0)
-        (len (length line))
-        (fields '()))
-    (while (< pos len)
-      (let* ((char (aref line pos))
-             (result
-              (if (eq char ?\")
-                  (ob-athena--parse-quoted-field line pos len)
-                (ob-athena--parse-unquoted-field line pos len))))
-        (push (car result) fields)
-        (setq pos (cdr result))
-        (when (and (< pos len) (eq (aref line pos) ?,))
-          (cl-incf pos))))
-    (nreverse fields)))
-
-(defun ob-athena--parse-quoted-field (line pos len)
-  "Parse quoted field from LINE starting at POS, up to LEN.
-Returns a cons cell (field . new-pos)."
-  (cl-incf pos)
-  (let ((start pos)
-        (str ""))
-    (while (and (< pos len)
-                (not (and (eq (aref line pos) ?\")
-                          (or (>= (1+ pos) len)
-                              (not (eq (aref line (1+ pos)) ?\"))))))
-      (if (and (eq (aref line pos) ?\")
-               (eq (aref line (1+ pos)) ?\"))
-          (progn
-            (setq str (concat str (substring line start pos) "\""))
-            (setq pos (+ pos 2))
-            (setq start pos))
-        (cl-incf pos)))
-    (setq str (concat str (substring line start pos)))
-    (cons str (1+ pos))))
-
-(defun ob-athena--parse-unquoted-field (line pos len)
-  "Parse unquoted field from LINE starting at POS, up to LEN.
-Returns a cons cell (field . new-pos)."
-  (let ((start pos))
-    (while (and (< pos len)
-                (not (eq (aref line pos) ?,)))
-      (cl-incf pos))
-    (cons (string-trim (substring line start pos)) pos)))
-
-(defun ob-athena--clean-json-values (value)
-  "Remove literal tab (\\t) and newline (\\n) escape sequences from string VALUE.
-Return VALUE unchanged if not a string."
-  (if (stringp value)
-      (replace-regexp-in-string "\\\\[nt]" "" value)
-    value))
-
-(defun ob-athena--csv-lines-to-json (lines headers)
-  "Convert CSV LINES into a list of JSON objects using HEADERS.
-Each line is parsed into a hash table mapping header names.
-This is to cleaned field values."
-  (cl-loop for line in (cdr lines)
-           for fields = (ob-athena--parse-csv-line line)
-           if (equal (length headers) (length fields))
-           collect
-           (let ((obj (make-hash-table :test 'equal)))
-             (cl-loop for h in headers
-                      for f in fields
-                      do (puthash h (ob-athena--clean-json-values f) obj))
-             obj)
-           else do
-           (message "Skipping malformed line: %s" line)))
+      (let ((mlr-exit (shell-command
+                       (format "mlr --icsv --ojson cat %s > %s"
+                               (shell-quote-argument csv-path)
+                               (shell-quote-argument json-path)))))
+        (if (/= mlr-exit 0)
+            (message "Failed to convert CSV to JSON using mlr.")
+          (with-current-buffer json-buf
+            (ob-athena--add-to-workspace json-buf)
+            (erase-buffer)
+            (insert-file-contents json-path)
+            (goto-char (point-min))
+            (js-mode))
+          (pop-to-buffer json-buf)
+          (when ob-athena-fullscreen-monitor-buffer
+            (delete-other-windows)))))))
 
 (defun ob-athena-cancel-query ()
   "Cancel the running Athena query and change polling frequency to 0s."
