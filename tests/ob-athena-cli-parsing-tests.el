@@ -77,5 +77,14 @@
     (should (string-match "Total Time: 3\\.67 sec" output))
     (should (string-match "Queue Time: 0\\.11 sec" output))))
 
+(ert-deftest ob-athena--calculate-column-widths-works ()
+  (let* ((rows '(("a" "12345") ("bbb" "678")))
+         (widths (ob-athena--calculate-column-widths rows)))
+    (should (equal widths '(3 5)))))
+
+(ert-deftest ob-athena--extract-json-field-valid-key ()
+  (let ((json "{\"foo\": \"bar\"}"))
+    (should (equal (ob-athena--extract-json-field json "foo") "bar"))))
+
 (provide 'ob-athena-cli-parsing-tests)
 ;;; ob-athena-cli-parsing-tests.el ends here
