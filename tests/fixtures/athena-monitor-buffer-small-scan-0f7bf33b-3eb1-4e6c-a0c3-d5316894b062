@@ -1,0 +1,38 @@
+Submitting Athena query...
+Press C-c C-k to cancel this query at any time.
+You can also view your query history here:
+https://us-east-1.console.aws.amazon.com/athena/home?region=us-east-1#/query-editor/history
+
+Query started with ID: 0f7bf33b-3eb1-4e6c-a0c3-d5316894b062
+Polling every 3 seconds...
+
+[16:07:28]
+Status: SUCCEEDED
+Data Scanned: 0.00 MB
+Total Cost So Far: $0.0000
+
+Preprocessing Time: 0.02 sec (6.3%)
+Queue Time: 0.08 sec (20.8%)
+Execution Time: 0.26 sec (68.2%)
+Finalization Time: 0.02 sec (4.7%)
+Total Time: 0.38 sec
+
+Total Query Cost: $0.0000 (Total Time: 0.38 sec)
+Query finished. Results saved to: /tmp/user/1000/0f7bf33b-3eb1-4e6c-a0c3-d5316894b062.csv
+
+Press C-c C-c to view CSV results, C-c C-j for JSON. Press C-c C-l to open local file, C-c C-a for AWS link.
+https://us-east-1.console.aws.amazon.com/athena/home?region=us-east-1#/query-editor/history/0f7bf33b-3eb1-4e6c-a0c3-d5316894b062
+
+--- Athena Console-style Results ---
+
+| id          | element | datavalue |
+| US1TXGV0021 | PRCP    | 0         |
+| US1TXGV0021 | SNOW    | 0         |
+| US1KSSG0036 | PRCP    | 0         |
+| GME00126430 | TMAX    | -22       |
+| GME00126430 | TMIN    | -124      |
+| GME00126430 | PRCP    | 0         |
+| GME00126430 | SNWD    | 30        |
+| ASN00041495 | PRCP    | 70        |
+| ASN00099002 | PRCP    | 0         |
+| US1KSMG0005 | PRCP    | 10        |
