@@ -157,9 +157,14 @@ Returns clickable Org links with full URL and file path."
      (format "[[%s][%s]]" console-url console-url)
      (format "[[file:%s][%s]]" csv-path csv-path))))
 
-(defun ob-athena-query-executor (query)
-  "Submit Athena QUERY and stream live status to *Athena Monitor* buffer."
-  (let ((monitor-buffer (ob-athena--prepare-monitor-buffer))
+(defun ob-athena--build-context (params)
+  "Build execution context from PARAMS and defaults."
+  (let ((ctx (copy-tree ob-athena--default-context)))
+    (dolist (pair params ctx)
+      (when (keywordp (car pair))
+        (let ((key (intern (substring (symbol-name (car pair)) 1))))
+          (setf (alist-get key ctx nil 'remove #'eq) (cdr pair)))))))
+
         (query-id nil))
     (ob-athena--display-monitor-buffer monitor-buffer)
     (ob-athena--write-query-to-file query)
