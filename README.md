@@ -44,7 +44,7 @@ Add the following to your Doom Emacs `packages.el`:
 
 ```emacs-lisp
 (package! ob-athena
-  :recipe (:host github :repo "will-abb/ob-athena"))
+  :recipe (:host github :repo "will-abb/aws-athena-babel"))
 ```
 
 Then in your `config.el`:
@@ -77,6 +77,7 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
         ob-athena-csv-output-dir "/my-result-directory"))
 ```
 
+*With support for source block headers arguments in v2.0.0 and up you can set this variables there instead, allowing per query settings*
 ## Usage
 
 1. In an Org-mode buffer, insert a source block with header arguments on the same line:
