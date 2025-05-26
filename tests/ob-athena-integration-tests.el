@@ -1,34 +1,59 @@
-;;; ob-athena-integration-tests.el --- Real integration tests -*- lexical-binding: t; -*-
+;;; ob-athena-integration-tests.el --- Minimal integration tests -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'org)
 (require 'ob-athena)
 
-(defvar auto-save-list-file-prefix nil)
+(setq org-confirm-babel-evaluate nil)
 
 (setq default-directory
       (or (file-name-directory load-file-name)
           (file-name-directory buffer-file-name)
           default-directory))
 
-(ert-deftest ob-athena-real-query-executes ()
-  "Run a real Athena query via Org Babel."
+(defun ob-athena--run-sample-query ()
+  "Run a real Athena query and return the Org result."
   (let ((org-src-lang-modes '(("athena" . sql)))
-        ;; Required to enable :var substitution
-        (org-babel-load-languages '((athena . t)))
-        ;; This buffer simulates an Org user
-        (org-code-block
-         "#+begin_src athena :aws-profile \"personal-athena-admin-005343251202\" :database \"blogdb\" :s3-output-location \"s3://athena-query-results-005343251202/\" :workgroup \"primary\" :poll-interval 3 :fullscreen t :result-reuse-enabled t :result-reuse-max-age 10080 :console-region \"us-east-1\" :var select_clause=\"SELECT id, element, datavalue\" :var table=\"original_csv\" :var limit=10
-${select_clause}
-FROM ${table}
-LIMIT ${limit};
-#+end_src"))
-
+        (org-babel-load-languages '((athena . t))))
     (with-temp-buffer
-      (insert org-code-block)
+      (insert "#+begin_src athena :aws-profile \"personal-athena-admin-005343251202\" :database \"blogdb\" :s3-output-location \"s3://athena-query-results-005343251202/\" :workgroup \"primary\" :poll-interval 3 :fullscreen t :result-reuse-enabled nil :result-reuse-max-age 10080 :console-region \"us-east-1\" :var select_clause=\"SELECT id, element, datavalue\" :var table=\"original_csv\" :var limit=10\n${select_clause}\nFROM ${table}\nLIMIT ${limit};\n#+end_src")
       (goto-char (point-min))
-      (org-babel-execute-src-block)) ; actually runs the Athena query
-    (should t))) ; If we didn’t crash, consider it passed for now
+      (org-babel-execute-src-block))))
+
+(defun ob-athena--extract-query-id (result)
+  "Extract query ID from RESULT if it contains a CSV S3 path."
+  (when (and (listp result)
+             (string-match "/\\([a-f0-9-]+\\)\\.csv" (car (last result))))
+    (match-string 1 (car (last result)))))
+
+(defun ob-athena--extract-csv-path (result)
+  "Extract local file path from Org link RESULT."
+  (when (stringp result)
+    (if (string-match "\\[\\[file:\\(.*?\\)\\]\\[" result)
+        (match-string 1 result)
+      result)))
+
+(defun ob-athena--csv-has-header-and-data-p (csv-path)
+  "Return non-nil if CSV at CSV-PATH has expected header and at least one data row."
+  (when (file-exists-p csv-path)
+    (let* ((lines (with-temp-buffer
+                    (insert-file-contents csv-path)
+                    (split-string (buffer-string) "\n" t))))
+      (message "CSV content:\n%s" (mapconcat #'identity lines "\n"))
+      (and (string= (car lines) "\"id\",\"element\",\"datavalue\"")
+           (> (length lines) 1)))))
+
+(ert-deftest ob-athena-query-returns-valid-id ()
+  "Ensure a valid query ID is returned."
+  (let* ((result (ob-athena--run-sample-query))
+         (query-id (ob-athena--extract-query-id result)))
+    (should (and query-id (string-match-p "^[a-f0-9-]+$" query-id)))))
+
+(ert-deftest ob-athena-csv-has-correct-header-and-rows ()
+  "Verify the downloaded Athena CSV has correct header and at least one data row."
+  (let* ((result (ob-athena--run-sample-query))
+         (csv-path (ob-athena--extract-csv-path (car (last result)))))
+    (should (ob-athena--csv-has-header-and-data-p csv-path))))
 
 (provide 'ob-athena-integration-tests)
 ;;; ob-athena-integration-tests.el ends here
