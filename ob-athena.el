@@ -203,9 +203,10 @@ Returns clickable Org links with full URL and file path."
     (ob-athena--start-status-polling query-id ctx)
     query-id))
 
-(defun ob-athena--prepare-monitor-buffer ()
-  "Create and populate the Athena monitor buffer."
-  (let ((buf (get-buffer-create "*Athena Monitor*")))
+(defun ob-athena--prepare-monitor-buffer (ctx)
+  "Create and populate the Athena monitor buffer using CTX."
+  (let ((buf (get-buffer-create "*Athena Monitor*"))
+        (region (alist-get 'console-region ctx)))
     (with-current-buffer buf
       (read-only-mode -1)
       (erase-buffer)
@@ -253,77 +254,86 @@ Returns clickable Org links with full URL and file path."
         (user-error "Failed to start query: %s" cmd-output)
       cmd-output)))
 
-(defun ob-athena--build-start-query-command ()
-  "Return the formatted AWS CLI command string to start an Athena query."
-  (let ((reuse-cfg (if ob-athena-result-reuse-enabled
-                       (format "--result-reuse-configuration %s"
-                               (shell-quote-argument
-                                (format "ResultReuseByAgeConfiguration={Enabled=true,MaxAgeInMinutes=%d}"
-                                        ob-athena-result-reuse-max-age)))
-                     "")))
+(defun ob-athena--build-start-query-command (ctx)
+  "Return the formatted AWS CLI command string to start an Athena query using CTX."
+  (message "CTX: %S" ctx)
+  (let* ((reuse-enabled (alist-get 'result-reuse-enabled ctx))
+         (reuse-age (alist-get 'result-reuse-max-age ctx))
+         (reuse-cfg (if reuse-enabled
+                        (format "--result-reuse-configuration %s"
+                                (shell-quote-argument
+                                 (format "ResultReuseByAgeConfiguration={Enabled=true,MaxAgeInMinutes=%d}"
+                                         reuse-age)))
+                      ""))
+         (workgroup (alist-get 'workgroup ctx))
+         (database (alist-get 'database ctx))
+         (output-location (alist-get 's3-output-location ctx))
+         (profile (alist-get 'aws-profile ctx))
+         (region (alist-get 'console-region ctx)))
     (format "aws athena start-query-execution \
 --query-string %s \
 --work-group %s \
 --query-execution-context Database=%s \
 --result-configuration OutputLocation=%s \
 %s \
+--region %s \
 --profile %s \
 --output text --query 'QueryExecutionId'"
             (shell-quote-argument (format "file://%s" ob-athena-query-file))
-            (shell-quote-argument ob-athena-workgroup)
-            (shell-quote-argument ob-athena-database)
-            (shell-quote-argument ob-athena-output-location)
+            (shell-quote-argument workgroup)
+            (shell-quote-argument database)
+            (shell-quote-argument output-location)
             reuse-cfg
-            (shell-quote-argument ob-athena-profile))))
+            (shell-quote-argument region)
+            (shell-quote-argument profile))))
 
-
-(defun ob-athena--setup-monitor-state (buffer query-id)
-  "Add QUERY-ID to BUFFER and configure interaction keys."
+(defun ob-athena--setup-monitor-state (buffer query-id ctx)
+  "Add QUERY-ID to BUFFER and configure interaction keys using CTX."
   (with-current-buffer buffer
     (setq-local ob-athena-query-id query-id)
+    (setq-local ob-athena--context ctx)
+    (setq-local ob-athena-query-completed nil)
     (use-local-map ob-athena-monitor-mode-map)
     (read-only-mode -1)
     (goto-char (point-max))
     (insert (format "\n\nQuery started with ID: %s\n" query-id))
-    (insert (format "Polling every %d seconds...\n\n" ob-athena-poll-interval))
+    (insert (format "Polling every %d seconds...\n\n"
+                    (alist-get 'poll-interval ctx)))
     (read-only-mode 1)
     (goto-char (point-max))))
 
-(defun ob-athena--start-status-polling (query-id)
-  "Begin polling Athena query QUERY-ID status."
-  (setq ob-athena-query-status-timer
-        (run-at-time 0 ob-athena-poll-interval
-                     #'ob-athena-monitor-query-status query-id)))
 
-(defun ob-athena-monitor-query-status (query-id)
-  "Poll Athena execution status for QUERY-ID and update monitor buffer."
-  (let* ((json-output (ob-athena--fetch-query-json query-id))
+(defun ob-athena--start-status-polling (query-id ctx)
+  "Begin polling Athena query QUERY-ID status using CTX."
+  (setq ob-athena-query-status-timer
+        (run-at-time 0 (alist-get 'poll-interval ctx)
+                     (lambda () (ob-athena-monitor-query-status query-id ctx)))))
+
+
+(defun ob-athena-monitor-query-status (query-id ctx)
+  "Poll Athena execution status for QUERY-ID using CTX and update monitor buffer."
+  (let* ((json-output (ob-athena--fetch-query-json query-id ctx))
          (status (ob-athena--extract-json-field json-output "State"))
          (cost (ob-athena--update-total-cost-if-needed status json-output))
          (output (ob-athena--format-monitor-status json-output status cost)))
     (ob-athena--append-monitor-output (get-buffer-create "*Athena Monitor*") output)
-
-    (when (or (member status '("SUCCEEDED" "FAILED" "CANCELLED"))
-              (not status))
+    (when (or (member status '("SUCCEEDED" "FAILED" "CANCELLED")) (not status))
       (cancel-timer ob-athena-query-status-timer)
       (setq ob-athena-query-status-timer nil)
-      (when query-id
-        (ob-athena--handle-query-completion query-id (get-buffer "*Athena Monitor*"))))))
+      (ob-athena--handle-query-completion query-id (get-buffer "*Athena Monitor*") ctx))))
 
-(defun ob-athena--fetch-query-json (query-id)
-  "Return raw JSON output for Athena QUERY-ID."
-  (shell-command-to-string
-   (format "aws athena get-query-execution \
---query-execution-id %s --profile %s"
-           (shell-quote-argument query-id)
-           (shell-quote-argument ob-athena-profile))))
-
-(defun ob-athena--update-total-cost-if-needed (_status json-output)
-  "Update total cost using JSON-OUTPUT's current scanned bytes, if any."
-  (let ((bytes (ob-athena--extract-json-number json-output "DataScannedInBytes")))
-    (when bytes
-      (setq ob-athena-total-cost (ob-athena--calculate-query-cost bytes)))
-    ob-athena-total-cost))
+(defun ob-athena--fetch-query-json (query-id ctx)
+  "Return raw JSON output for Athena QUERY-ID using CTX."
+  (let ((profile (alist-get 'aws-profile ctx))
+        (region (alist-get 'console-region ctx)))
+    (shell-command-to-string
+     (format "aws athena get-query-execution \
+--query-execution-id %s \
+--region %s \
+--profile %s"
+             (shell-quote-argument query-id)
+             (shell-quote-argument region)
+             (shell-quote-argument profile)))))
 
 (defun ob-athena--format-monitor-status (json-output status cost)
   "Return formatted string for monitor buffer from JSON-OUTPUT, STATUS, and COST."
