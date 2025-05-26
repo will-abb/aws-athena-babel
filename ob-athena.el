@@ -138,9 +138,6 @@ Do not modify directly.")
 (add-to-list 'org-src-lang-modes '("athena" . sql))
 
 ;;;###autoload
-(add-to-list 'org-babel-load-languages '(athena . t))
-
-;;;###autoload
 (defun org-babel-execute:athena (body params)
   "Execute an Athena SQL query block from Org Babel using BODY and PARAMS.
 Returns clickable Org links with full URL and file path."
