@@ -65,7 +65,7 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
   :load-path "~/.emacs.d/ob-athena"
   :commands (org-babel-execute:athena)
   :config
-  (setq ob-athena-output-location "s3://your-bucket/path/"
+  (setq ob-athena-s3-output-location "s3://your-bucket/path/"
         ob-athena-workgroup "primary"
         ob-athena-profile "default"
         ob-athena-database "default"
