@@ -54,6 +54,3 @@
   (let* ((result (ob-athena--run-sample-query))
          (csv-path (ob-athena--extract-csv-path (car (last result)))))
     (should (ob-athena--csv-has-header-and-data-p csv-path))))
-
-(provide 'ob-athena-integration-tests)
-;;; ob-athena-integration-tests.el ends here
