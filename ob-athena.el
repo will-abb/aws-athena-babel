@@ -5,8 +5,8 @@
 ;; Author: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Maintainer: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Created: April 05, 2025
-;; Version: 2.0.0
-;; Package-Version: 2.0.0
+;; Version: 2.0.2
+;; Package-Version: 2.0.2
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
 ;; URL: https://github.com/will-abb/aws-athena-babel
