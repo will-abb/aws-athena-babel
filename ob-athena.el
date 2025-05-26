@@ -230,7 +230,8 @@ Returns clickable Org links with full URL and file path."
     (persp-add-buffer buffer)))
 
 (defun ob-athena--display-monitor-buffer (buffer ctx)
-  "Display BUFFER based on fullscreen settings in CTX and add it to the current workspace."
+  "Display BUFFER based on fullscreen settings in CTX.
+Add buffer to the current workspace."
   (ob-athena--add-to-workspace buffer)
   (if (alist-get 'fullscreen ctx)
       (progn
@@ -244,7 +245,8 @@ Returns clickable Org links with full URL and file path."
     (insert query)))
 
 (defun ob-athena--start-query-execution (ctx)
-  "Start the Athena query using CTX and return the QueryExecutionId or raise an error."
+  "Start the Athena query using CTX.
+Return the QueryExecutionId or raise an error."
   (let* ((cmd (ob-athena--build-start-query-command ctx))
          (cmd-output (string-trim (shell-command-to-string cmd))))
     (if (or (string-empty-p cmd-output)
