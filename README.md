@@ -44,7 +44,7 @@ Add the following to your Doom Emacs `packages.el`:
 
 ```emacs-lisp
 (package! ob-athena
-  :recipe (:host github :repo "will-abb/ob-athena"))
+  :recipe (:host github :repo "will-abb/aws-athena-babel"))
 ```
 
 Then in your `config.el`:
@@ -65,7 +65,7 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
   :load-path "~/.emacs.d/ob-athena"
   :commands (org-babel-execute:athena)
   :config
-  (setq ob-athena-output-location "s3://your-bucket/path/"
+  (setq ob-athena-s3-output-location "s3://your-bucket/path/"
         ob-athena-workgroup "primary"
         ob-athena-profile "default"
         ob-athena-database "default"
@@ -77,6 +77,8 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
         ob-athena-csv-output-dir "/my-result-directory"))
 ```
 
+*With support for source block headers arguments in v2.0.0 and up you can set variables there instead, allowing per query settings.*
+
 ## Usage
 
 1. In an Org-mode buffer, insert a source block with header arguments on the same line:
@@ -85,24 +87,23 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
    SELECT * FROM your_table WHERE user = '${user}' LIMIT 10;
    #+end_src
    ```
-2. Run the block using `C-c C-c` inside the source block.
-3. Query progress and metrics appear in the `*Athena Monitor*` buffer.
+2. Run the block using `C-c C-c` inside the source block
+3. Query progress and metrics appear in the `*Athena Monitor*` buffer
 4. Press:
-   * `C-c C-c` to view raw CSV
+   * `C-c C-c` to view raw CSV.
    * `C-c C-j` to view JSON output (parsed using `mlr`)
    * `C-c C-l` to open the local CSV result file
    * `C-c C-a` to open the Athena Console in your browser
-5. Results are saved by default to `/tmp/<query-id>.csv` and rendered as:
-*You do not have to specify header values if you set them in your Emacs configuration file. They are they just to override the default values*
+5. Results are saved by default to `/tmp/<query-id>.csv`
 ## Output Rendering
 
-- **Org Table**: Console-style format based on Athena's CSV output.
-- **CSV**: Raw download from S3, shown in a dedicated buffer.
-- **JSON**: Automatically converted using the `mlr` tool (`mlr --icsv --ojson`).
+- **Org Table**: Console-style format based on Athena's CSV output
+- **CSV**: Raw download from S3, shown in a dedicated buffer
+- **JSON**: Automatically converted using the `mlr` tool (`mlr --icsv --ojson`)
 - **Local CSV**: Saved to system temp dir and openable with `C-c C-l`
 - **Console Link**: Openable in browser via `C-c C-a`
 
-*The queries and the outputs have solely been tested with CloudTrail buckets.*
+*The queries and the outputs have mostly been tested with CloudTrail buckets.*
 
 ## License
 
