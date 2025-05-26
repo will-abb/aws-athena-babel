@@ -191,7 +191,6 @@ Returns clickable Org links with full URL and file path."
     (message ">>>>> AFTER: %s" expanded)
     expanded))
 
-
 (defun ob-athena-query-executor (query ctx)
   "Submit Athena QUERY using CTX and stream live status to *Athena Monitor* buffer."
   (let ((monitor-buffer (ob-athena--prepare-monitor-buffer ctx))
@@ -304,13 +303,11 @@ Return the QueryExecutionId or raise an error."
     (read-only-mode 1)
     (goto-char (point-max))))
 
-
 (defun ob-athena--start-status-polling (query-id ctx)
   "Begin polling Athena query QUERY-ID status using CTX."
   (setq ob-athena-query-status-timer
         (run-at-time 0 (alist-get 'poll-interval ctx)
                      (lambda () (ob-athena-monitor-query-status query-id ctx)))))
-
 
 (defun ob-athena-monitor-query-status (query-id ctx)
   "Poll Athena execution status for QUERY-ID using CTX and update monitor buffer."
