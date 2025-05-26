@@ -1,0 +1,9 @@
+#+begin_src athena :aws-profile "personal-athena-admin-005343251202" :database "blogdb" :s3-output-location "s3://athena-query-results-005343251202/" :workgroup "primary" :poll-interval 3 :fullscreen t :result-reuse-enabled t :result-reuse-max-age 10080 :console-region "us-east-1" :var select_clause="SELECT id, element, datavalue" :var table="original_csv" :var limit=10
+${select_clause}
+FROM ${table}
+LIMIT ${limit};
+#+end_src
+
+#+RESULTS:
+| Query submitted. View: | [[https://us-east-1.console.aws.amazon.com/athena/home?region=us-east-1#/query-editor/history/0f7bf33b-3eb1-4e6c-a0c3-d5316894b062][https://us-east-1.console.aws.amazon.com/athena/home?region=us-east-1#/query-editor/history/0f7bf33b-3eb1-4e6c-a0c3-d5316894b062]] | [[file:/tmp/user/1000/0f7bf33b-3eb1-4e6c-a0c3-d5316894b062.csv][/tmp/user/1000/0f7bf33b-3eb1-4e6c-a0c3-d5316894b062.csv]] |
+
