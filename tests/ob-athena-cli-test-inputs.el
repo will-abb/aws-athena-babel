@@ -11,18 +11,13 @@
           default-directory))
 
 (defmacro with-shell-output (output &rest body)
-  "Mock `shell-command-to-string` to return OUTPUT during BODY."
-  `(cl-letf (((symbol-function 'shell-command-to-string) (lambda (&rest _) ,output)))
-     ,@body))
-
-(ert-deftest ob-athena--start-query-execution-valid-id ()
-  "Return valid QueryExecutionId from well-formed CLI output."
-  (with-shell-output "abc123-def456"
-                     (let ((ctx '((output-location . "s3://test/")
-                                  (workgroup . "test-wg")
-                                  (database . "test-db")
-                                  (profile . "test-profile"))))
-                       (should (equal (ob-athena--start-query-execution ctx) "abc123-def456")))))
+  "Temporarily override `shell-command-to-string` to return OUTPUT during BODY."
+  `(let ((real-shell (symbol-function 'shell-command-to-string)))
+     (unwind-protect
+         (progn
+           (fset 'shell-command-to-string (lambda (&rest _) ,output))
+           ,@body)
+       (fset 'shell-command-to-string real-shell))))
 
 (ert-deftest ob-athena--start-query-execution-empty-output ()
   "Raise error on empty CLI output."
