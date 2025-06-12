@@ -22,3 +22,4 @@ pipelines:
           - *securityChecks
           - pre-commit run --all-files --hook-stage commit
           - pre-commit run --all-files --hook-stage push
+          - pre-commit run --all-files --hook-stage manual
