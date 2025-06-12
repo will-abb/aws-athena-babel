@@ -1,11 +1,14 @@
-;;; ob-athena-tests.el --- Load all ERT test files for ob-athena -*- lexical-binding: t; -*-
+ ;;; ob-athena-tests.el --- Load all ERT test files for ob-athena -*- lexical-binding: t; -*-
 
-(load-file "ob-athena-babel-parsing-tests.el")
-(load-file "ob-athena-cli-parsing-tests.el")
-(load-file "ob-athena-cli-test-inputs.el")
-(load-file "ob-athena-integration-tests.el")
-(load-file "ob-athena-live-integration-tests.el")
-(load-file "ob-athena-output-tests.el")
+(defconst ob-athena-test-dir
+  (file-name-directory (or load-file-name buffer-file-name)))
+
+(load (expand-file-name "ob-athena-babel-parsing-tests.el" ob-athena-test-dir))
+(load (expand-file-name "ob-athena-cli-parsing-tests.el" ob-athena-test-dir))
+(load (expand-file-name "ob-athena-cli-test-inputs.el" ob-athena-test-dir))
+(load (expand-file-name "ob-athena-integration-tests.el" ob-athena-test-dir))
+(load (expand-file-name "ob-athena-live-integration-tests.el" ob-athena-test-dir))
+(load (expand-file-name "ob-athena-output-tests.el" ob-athena-test-dir))
 
 (provide 'ob-athena-tests)
 

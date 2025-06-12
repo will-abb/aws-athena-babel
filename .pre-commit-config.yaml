@@ -72,3 +72,22 @@ repos:
         language: system
         files: '.*'
         exclude: '(.gitallowed|.gitleaksignore|.gitleaks_baseline.json|.secrets.baseline)'
+  - repo: local
+    hooks:
+      - id: emacs-ert-tests
+        name: Emacs Regression Tests
+        language: system
+        entry: bash -c 'emacs -Q --batch --no-site-file -L . -L tests -l tests/ob-athena-tests.el -f ert-run-tests-batch-and-exit'
+        pass_filenames: false
+
+# - id: emacs-byte-compile
+#   name: Emacs Byte Compilation
+#   language: system
+#   entry: bash -c 'emacs -Q --batch --no-site-file -f batch-byte-compile "$@"'
+#   types: [elisp]
+
+# - id: emacs-checkdoc
+#   name: Emacs Checkdoc Lint
+#   language: system
+#   entry: bash -c 'for f in "$@"; do emacs -Q --batch --eval "(progn (find-file \"$f\") (checkdoc))"; done'
+#   types: [elisp]
