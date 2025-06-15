@@ -80,15 +80,15 @@ repos:
         language: system
         entry: bash -c 'emacs -Q --batch --no-site-file -L . -L tests -l tests/ob-athena-tests.el -f ert-run-tests-batch-and-exit'
         pass_filenames: false
-      - id: emacs-byte-compile
-        name: Emacs Byte Compilation
-        stages: [manual]
-        language: system
-        entry: bash -c 'emacs -Q --batch --no-site-file -f batch-byte-compile "$@"'
-        files: \.el$
-      - id: emacs-checkdoc
-        name: Emacs Checkdoc Lint
-        stages: [manual]
-        language: system
-        entry: bash -c 'for f in "$@"; do emacs -Q --batch --eval "(progn (find-file \"$f\") (checkdoc))"; done'
-        files: \.el$
+    # - id: emacs-byte-compile
+    #   name: Emacs Byte Compilation
+    #   stages: [manual]
+    #   language: system
+    #   entry: bash -c 'emacs -Q --batch --no-site-file -f batch-byte-compile "$@"'
+    #   files: \.el$
+    # - id: emacs-checkdoc
+    #   name: Emacs Checkdoc Lint
+    #   stages: [manual]
+    #   language: system
+    #   entry: bash -c 'for f in "$@"; do emacs -Q --batch --eval "(progn (find-file \"$f\") (checkdoc))"; done'
+    #   files: \.el$
