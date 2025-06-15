@@ -491,10 +491,12 @@ This is done by downloading and displaying results."
 
 (defun ob-athena--calculate-column-widths (rows)
   "Return list of max widths per column from ROWS."
-  (apply #'cl-mapcar
-         (lambda (&rest cols)
-           (apply #'max (mapcar #'length cols)))
-         rows))
+  (if (null rows)
+      '()
+    (apply #'cl-mapcar
+           (lambda (&rest cols)
+             (apply #'max (mapcar #'length cols)))
+           rows)))
 
 (defun ob-athena--render-org-table (rows widths)
   "Render ROWS into Org-style table using column WIDTHS."
