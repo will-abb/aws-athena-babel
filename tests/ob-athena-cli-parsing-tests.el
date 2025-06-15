@@ -57,16 +57,25 @@
                      "s3://athena-query-results-005343251202/43977ec3-ba3e-4874-912a-73f426532ffb.csv"))))
 
 (ert-deftest ob-athena-calculate-cost-10mb ()
-  "Ensure cost is correct within margin for 10MB query and from real JSONs."
+  "Ensure cost is correct within margin for 10MB query."
   (should (< (abs (- (ob-athena--calculate-query-cost 10485760)
                      4.76837158203125e-05))
-             1e-10))
+             1e-10)))
+
+(ert-deftest ob-athena-calculate-cost-1tb ()
+  "Ensure cost is correctly calculated for 1TB of data."
+  (should (= (ob-athena--calculate-query-cost 1099511627776) 5.0)))
+
+(ert-deftest ob-athena-calculate-cost-from-real-files ()
+  "Verify cost calculation from real Athena fixture JSON files."
   (let* ((json-success (ob-athena--load-sample-json
                         "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json"))
          (bytes-success (ob-athena--extract-json-number json-success "DataScannedInBytes"))
          (cost-success (ob-athena--calculate-query-cost bytes-success)))
     (should (floatp cost-success))
-    (should (= bytes-success 4746704)))
+    (should (= bytes-success 4746704))
+    (should (< (abs (- cost-success 2.1558403968811035e-05)) 1e-10)))
+
   (let* ((json-failed (ob-athena--load-sample-json
                        "fixtures/4bf8a6ca-0880-4383-bc76-7a3baeb8b749-query-failed-no-table-exists.json"))
          (bytes-failed (ob-athena--extract-json-number json-failed "DataScannedInBytes"))
@@ -74,9 +83,6 @@
     (should (= bytes-failed 0))
     (should (= cost-failed 0.0))))
 
-(ert-deftest ob-athena-calculate-cost-1tb ()
-  "Ensure cost is correctly calculated for 1TB of data."
-  (should (= (ob-athena--calculate-query-cost 1099511627776) 5.0)))
 
 (ert-deftest ob-athena-extract-json-field-missing-key ()
   "Return nil when the key is missing from the JSON string."
