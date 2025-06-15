@@ -1,4 +1,4 @@
-;;; ob-athena-integration-tests.el --- Minimal integration tests -*- lexical-binding: t; -*-
+;;; ob-athena-minimal-integration-tests.el --- Minimal integration tests -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'org)
