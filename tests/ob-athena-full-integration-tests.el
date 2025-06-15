@@ -78,20 +78,20 @@
                    (insert-file-contents csv-path)
                    (goto-char (point-min))
                    (re-search-forward "id.*name.*score" nil t)
-                   (re-search-forward "^\"[0-9]+\",\"[^\"]+\",\"8[5-9]\\..*\"$" nil t)))))
+                   (re-search-forward "^\"[0-9]+\",\"[^\"]+\",\"8[5-9]\\..*\"$" nil t))))))
 
-  (ert-deftest ob-athena-user-profiles-notes-contain-quote ()
-    "Check for rows where notes column contains the word 'quote'."
-    (let* ((result (ob-athena--run-query
-                    "SELECT id, notes FROM test_user_profiles WHERE notes LIKE '%quote%';"))
-           (csv-path (ob-athena--extract-csv-path (car (last result)))))
-      (should (and (file-exists-p csv-path)
-                   (with-temp-buffer
-                     (insert-file-contents csv-path)
-                     (goto-char (point-min))
-                     (re-search-forward "id.*notes" nil t)
-                     (re-search-forward "quote" nil t)))))
+(ert-deftest ob-athena-user-profiles-notes-contain-quote ()
+  "Check for rows where notes column contains the word 'quote'."
+  (let* ((result (ob-athena--run-query
+                  "SELECT id, notes FROM test_user_profiles WHERE notes LIKE '%quote%';"))
+         (csv-path (ob-athena--extract-csv-path (car (last result)))))
+    (should (and (file-exists-p csv-path)
+                 (with-temp-buffer
+                   (insert-file-contents csv-path)
+                   (goto-char (point-min))
+                   (re-search-forward "id.*notes" nil t)
+                   (re-search-forward "quote" nil t))))))
 
 
-    (provide 'ob-athena-full-integration-tests)
+(provide 'ob-athena-full-integration-tests)
 ;;; ob-athena-full-integration-tests.el ends here
