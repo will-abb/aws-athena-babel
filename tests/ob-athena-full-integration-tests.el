@@ -35,11 +35,12 @@
 
 (ert-deftest ob-athena-user-profiles-return-all-records ()
   "Ensure all records from test_user_profiles are returned in CSV and match expected character count."
-  (let* ((timestamp (floor (float-time)))
+  (let* ((timestamp (car (current-time)))
          (s3-path (format "s3://athen-query-test-queries-005343251202/test-data/%d/" timestamp))
          (csv-dir (expand-file-name (number-to-string timestamp) temporary-file-directory))
-         (org-src (format "#+begin_src athena :aws-profile \"williseed-athena\" :database \"default\" :s3-output-location \"%s\" :workgroup \"primary\" :poll-interval 3 :fullscreen nil :result-reuse-enabled nil :result-reuse-max-age 10080 :console-region \"us-east-1\" :csv-output-dir \"%s\" :var name=\"Alice\" score=90 signup_date=\"2024-01-01\"\nSELECT * FROM test_user_profiles;\n#+end_src"
-                          s3-path csv-dir)))
+         (query-file (expand-file-name (format "athena-query-%d.sql" timestamp) csv-dir))
+         (org-src (format "#+begin_src athena :aws-profile \"williseed-athena\" :database \"default\" :s3-output-location \"%s\" :workgroup \"primary\" :poll-interval 3 :fullscreen nil :result-reuse-enabled nil :result-reuse-max-age 10080 :console-region \"us-east-1\" :csv-output-dir \"%s\" :query-file \"%s\" :var name=\"Alice\" score=90 signup_date=\"2024-01-01\"\nSELECT * FROM test_user_profiles;\n#+end_src"
+                          s3-path csv-dir query-file)))
     (make-directory csv-dir t)
     (with-temp-buffer
       (insert org-src)
@@ -56,6 +57,7 @@
                          (and (= (length lines) 21)
                               (> (length content) 1700))))))))
     (ob-athena--cleanup-buffers)))
+
 
 ;; (ert-deftest ob-athena-user-profiles-filter-by-name-score-signup ()
 ;;   "Query test_user_profiles using :var name, score, and signup_date, filtering by inequality. Validate output content and character length."
