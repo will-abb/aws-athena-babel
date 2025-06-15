@@ -566,7 +566,9 @@ This is done by downloading and displaying results."
   "Extract string value for KEY from JSON string using a regex match.
 Returns nil if JSON is not a string, malformed, or key is not found."
   (when (and (stringp json) (stringp key))
-    (when (string-match (format "\"%s\"[ \t]*:[ \t]*\"\\([^\"]+\\)\"" (regexp-quote key)) json)
+    (when (string-match
+           (format "\"%s\"[ \t]*:[ \t]*\"\\([^\"]*\\)\"" (regexp-quote key))
+           json)
       (match-string 1 json))))
 
 (defun ob-athena--extract-json-number (json key)
