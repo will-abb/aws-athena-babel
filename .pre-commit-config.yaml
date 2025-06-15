@@ -67,7 +67,7 @@ repos:
     hooks:
       - id: git-secrets
         name: git-secrets
-        stages: [manual]
+        stages: [push]
         entry: git secrets --scan
         language: system
         files: '.*'
@@ -76,18 +76,19 @@ repos:
     hooks:
       - id: emacs-ert-tests
         name: Emacs Regression Tests
+        stages: [manual]
         language: system
         entry: bash -c 'emacs -Q --batch --no-site-file -L . -L tests -l tests/ob-athena-tests.el -f ert-run-tests-batch-and-exit'
         pass_filenames: false
-
-# - id: emacs-byte-compile
-#   name: Emacs Byte Compilation
-#   language: system
-#   entry: bash -c 'emacs -Q --batch --no-site-file -f batch-byte-compile "$@"'
-#   types: [elisp]
-
-# - id: emacs-checkdoc
-#   name: Emacs Checkdoc Lint
-#   language: system
-#   entry: bash -c 'for f in "$@"; do emacs -Q --batch --eval "(progn (find-file \"$f\") (checkdoc))"; done'
-#   types: [elisp]
+      - id: emacs-byte-compile
+        name: Emacs Byte Compilation
+        stages: [manual]
+        language: system
+        entry: bash -c 'emacs -Q --batch --no-site-file -f batch-byte-compile "$@"'
+        files: \.el$
+      - id: emacs-checkdoc
+        name: Emacs Checkdoc Lint
+        stages: [manual]
+        language: system
+        entry: bash -c 'for f in "$@"; do emacs -Q --batch --eval "(progn (find-file \"$f\") (checkdoc))"; done'
+        files: \.el$
