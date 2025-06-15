@@ -65,7 +65,7 @@
       (should (equal actual expected)))))
 
 (ert-deftest ob-athena-show-csv-results-works ()
-  "Simulate CSV result display in user buffer."
+  "Simulate CSV result display in user buffer and check for full expected content."
   (let ((ob-athena-csv-output-dir "fixtures"))
     (copy-file
      (expand-file-name (concat test-query-id "-csv-resultsfile.csv") "fixtures")
@@ -75,7 +75,21 @@
       (ob-athena-show-csv-results)
       (with-current-buffer "*Athena Raw Results*"
         (goto-char (point-min))
-        (should (search-forward "US1TXGV0021" nil t))))))
+        (let ((expected (string-trim-right
+                         "\"id\",\"element\",\"datavalue\"
+\"US1TXGV0021\",\"PRCP\",\"0\"
+\"US1TXGV0021\",\"SNOW\",\"0\"
+\"US1KSSG0036\",\"PRCP\",\"0\"
+\"GME00126430\",\"TMAX\",\"-22\"
+\"GME00126430\",\"TMIN\",\"-124\"
+\"GME00126430\",\"PRCP\",\"0\"
+\"GME00126430\",\"SNWD\",\"30\"
+\"ASN00041495\",\"PRCP\",\"70\"
+\"ASN00099002\",\"PRCP\",\"0\"
+\"US1KSMG0005\",\"PRCP\",\"10\""))
+              (actual (string-trim-right
+                       (substring-no-properties (buffer-string)))))
+          (should (equal actual expected)))))))
 
 (ert-deftest ob-athena-show-json-results-generates-buffer ()
   "Test JSON conversion from CSV using mlr."
