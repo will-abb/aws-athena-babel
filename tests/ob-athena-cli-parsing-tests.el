@@ -23,13 +23,21 @@
 
 (ert-deftest ob-athena-parse-state ()
   "Test extraction of query execution state from real CLI JSON."
-  (let ((json (ob-athena--load-sample-json "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json")))
-    (should (string= (ob-athena--extract-json-field json "State") "SUCCEEDED"))))
+  (let ((json (ob-athena--load-sample-json
+               "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json")))
+    (should (string= (ob-athena--extract-json-field json "State") "SUCCEEDED")))
+  (let ((json (ob-athena--load-sample-json
+               "fixtures/4bf8a6ca-0880-4383-bc76-7a3baeb8b749-query-failed-no-table-exists.json")))
+    (should (string= (ob-athena--extract-json-field json "State") "FAILED"))))
 
 (ert-deftest ob-athena-parse-bytes-scanned ()
   "Test extraction of DataScannedInBytes field."
-  (let ((json (ob-athena--load-sample-json "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json")))
-    (should (= (ob-athena--extract-json-number json "DataScannedInBytes") 4746704))))
+  (let ((json (ob-athena--load-sample-json
+               "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json")))
+    (should (= (ob-athena--extract-json-number json "DataScannedInBytes") 4746704)))
+  (let ((json (ob-athena--load-sample-json
+               "fixtures/4bf8a6ca-0880-4383-bc76-7a3baeb8b749-query-failed-no-table-exists.json")))
+    (should (= (ob-athena--extract-json-number json "DataScannedInBytes") 0))))
 
 (ert-deftest ob-athena-parse-query-id ()
   "Test extraction of QueryExecutionId."
