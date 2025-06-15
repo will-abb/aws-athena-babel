@@ -45,6 +45,7 @@
 
 (ert-deftest ob-athena-user-profiles-return-all-records ()
   "Ensure all records from test_user_profiles are returned in CSV and match expected character count."
+  (ob-athena--reset-test-environment)
   (let* ((sql "SELECT * FROM test_user_profiles;")
          (result (ob-athena--run-query sql))
          (csv-path (ob-athena--extract-csv-path (car (last result)))))
@@ -60,6 +61,7 @@
 
 (ert-deftest ob-athena-user-profiles-filter-by-name-score-signup ()
   "Query test_user_profiles using :var name, score, and signup_date, filtering by inequality. Validate output content and character length."
+  (ob-athena--reset-test-environment)
   (let* ((sql "SELECT id, name, score, signup_date
                FROM test_user_profiles
                WHERE name != '${name}'
@@ -79,5 +81,23 @@
                      (and
                       (equal actual expected-csv)
                       (= (length actual) 163))))))))
+(defun ob-athena--reset-test-environment ()
+  "Clean up test state before each test to avoid cross-test interference."
+  ;; Kill Athena-related buffers
+  (dolist (buf (buffer-list))
+    (when (string-match-p "^\\*ob-athena.*\\*$" (buffer-name buf))
+      (kill-buffer buf)))
+  ;; Sleep briefly to let any S3 I/O settle (especially on CI or fast fs)
+  (sleep-for 1)
+  ;; Clear Org Babel context
+  (setq-local ob-athena--context nil)
+  ;; Ensure no residual temp output files interfere
+  (let ((temp-dir "/tmp/user/1000/")) ; adjust if needed
+    (when (file-exists-p temp-dir)
+      (dolist (file (directory-files temp-dir t "\\.csv$"))
+        (delete-file file))))
+  ;; Could optionally clear result CSVs from your known output bucket
+  ;; but that's only necessary if they persist and cause collisions
+  )
 
 ;;; ob-athena-full-integration-tests.el ends here
