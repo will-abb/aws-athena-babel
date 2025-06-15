@@ -17,7 +17,7 @@
         (org-babel-load-languages '((athena . t))))
     (with-temp-buffer
       (insert
-       "#+begin_src athena :aws-profile \"williseed-athena\" :database \"blogdb\" :s3-output-location \"s3://athen-query-test-queries-005343251202/test-data/\" :workgroup \"primary\" :poll-interval 3 :fullscreen nil :result-reuse-enabled nil :result-reuse-max-age 10080 :console-region \"us-east-1\"\nSELECT id, name, email, country FROM test_user_profiles WHERE is_active = true LIMIT 5;\n#+end_src")
+       "#+begin_src athena :aws-profile \"williseed-athena\" :database \"default\" :s3-output-location \"s3://athen-query-test-queries-005343251202/test-data/\" :workgroup \"primary\" :poll-interval 3 :fullscreen nil :result-reuse-enabled nil :result-reuse-max-age 10080 :console-region \"us-east-1\"\nSELECT id, name, email, country FROM test_user_profiles WHERE is_active = true LIMIT 5;\n#+end_src")
       (goto-char (point-min))
       (org-babel-execute-src-block))))
 
