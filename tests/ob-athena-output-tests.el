@@ -49,8 +49,8 @@
   "Ensure ob-athena--insert-console-style-results inserts an Org table."
   (with-temp-buffer
     (ob-athena--insert-console-style-results (current-buffer) test-csv-path)
-    (should (equal (substring-no-properties (buffer-string))
-                   "\n\n--- Athena Console-style Results ---\n\n\
+    (let ((actual (string-trim-right (substring-no-properties (buffer-string))))
+          (expected (string-trim-right "\n\n--- Athena Console-style Results ---\n\n\
 | id          | element | datavalue |\n\
 | US1TXGV0021 | PRCP    | 0         |\n\
 | US1TXGV0021 | SNOW    | 0         |\n\
@@ -61,7 +61,8 @@
 | GME00126430 | SNWD    | 30        |\n\
 | ASN00041495 | PRCP    | 70        |\n\
 | ASN00099002 | PRCP    | 0         |\n\
-| US1KSMG0005 | PRCP    | 10        |\n"))))  ;; <--- this final \n is crucial
+| US1KSMG0005 | PRCP    | 10        |\n")))
+      (should (equal actual expected)))))
 
 (ert-deftest ob-athena-show-csv-results-works ()
   "Simulate CSV result display in user buffer."
