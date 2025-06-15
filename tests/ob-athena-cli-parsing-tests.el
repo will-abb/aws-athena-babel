@@ -71,17 +71,23 @@
   (let* ((json-success (ob-athena--load-sample-json
                         "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json"))
          (bytes-success (ob-athena--extract-json-number json-success "DataScannedInBytes"))
-         (cost-success (ob-athena--calculate-query-cost bytes-success)))
-    (should (floatp cost-success))
+         (rounded-up-mb (ceiling (/ bytes-success 1048576.0)))
+         (billable-mb (max rounded-up-mb 10))
+         (expected-cost-success (/ (* billable-mb 1048576.0 5.0) 1099511627776.0))
+         (actual-cost-success (ob-athena--calculate-query-cost bytes-success)))
+    (should (floatp actual-cost-success))
     (should (= bytes-success 4746704))
-    (should (< (abs (- cost-success 2.1558403968811035e-05)) 1e-10)))
+    (should (< (abs (- actual-cost-success expected-cost-success)) 1e-10)))
 
   (let* ((json-failed (ob-athena--load-sample-json
                        "fixtures/4bf8a6ca-0880-4383-bc76-7a3baeb8b749-query-failed-no-table-exists.json"))
          (bytes-failed (ob-athena--extract-json-number json-failed "DataScannedInBytes"))
+         (rounded-up-mb-failed (ceiling (/ bytes-failed 1048576.0)))
+         (billable-mb-failed (max rounded-up-mb-failed 10))
+         (expected-cost-failed (/ (* billable-mb-failed 1048576.0 5.0) 1099511627776.0))
          (cost-failed (ob-athena--calculate-query-cost bytes-failed)))
     (should (= bytes-failed 0))
-    (should (= cost-failed 0.0))))
+    (should (< (abs (- cost-failed expected-cost-failed)) 1e-10))))
 
 
 (ert-deftest ob-athena-extract-json-field-missing-key ()
