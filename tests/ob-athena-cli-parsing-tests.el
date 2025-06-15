@@ -165,5 +165,30 @@
   (let ((json "{\"foo\": \"bar\"}"))
     (should (equal (ob-athena--extract-json-field json "foo") "bar"))))
 
+(ert-deftest ob-athena--extract-json-field-multiple-keys ()
+  "Return correct value when multiple keys are present."
+  (let ((json "{\"foo\": \"bar\", \"baz\": \"qux\"}"))
+    (should (equal (ob-athena--extract-json-field json "baz") "qux"))))
+
+(ert-deftest ob-athena--extract-json-field-empty-value ()
+  "Return empty string when key exists but value is empty."
+  (let ((json "{\"foo\": \"\"}"))
+    (should (equal (ob-athena--extract-json-field json "foo") ""))))
+
+(ert-deftest ob-athena--extract-json-field-key-with-spaces ()
+  "Extract value from a key that includes spaces."
+  (let ((json "{\"key with space\": \"value\"}"))
+    (should (equal (ob-athena--extract-json-field json "key with space") "value"))))
+
+(ert-deftest ob-athena--extract-json-field-unquoted-numeric-value ()
+  "Return nil if the value is numeric and not in quotes (not handled by regex)."
+  (let ((json "{\"foo\": 123}"))
+    (should (null (ob-athena--extract-json-field json "foo")))))
+
+(ert-deftest ob-athena--extract-json-field-nested-object ()
+  "Return nil if the value is a nested object (not handled by string regex)."
+  (let ((json "{\"foo\": {\"bar\": \"baz\"}}"))
+    (should (null (ob-athena--extract-json-field json "foo")))))
+
 (provide 'ob-athena-cli-parsing-tests)
 ;;; ob-athena-cli-parsing-tests.el ends here
