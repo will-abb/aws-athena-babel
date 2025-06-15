@@ -571,9 +571,11 @@ This is done by downloading and displaying results."
     (string-to-number (match-string 1 json))))
 
 (defun ob-athena--calculate-query-cost (bytes)
-  "Calculate Athena query cost from BYTES scanned."
-  (let ((adjusted (max bytes 10485760)))
-    (* (/ adjusted 1099511627776.0) 5.0)))
+  "Calculate Athena query cost (per-query billing model).
+Rounds BYTES to nearest megabyte with a 10MB minimum charge."
+  (let* ((rounded-up-mb (ceiling (/ bytes 1048576.0)))
+         (billable-mb (max rounded-up-mb 10)))
+    (* (/ (* billable-mb 1048576.0) 1099511627776.0) 5.0)))
 
 (defun ob-athena-show-csv-results ()
   "Display raw Athena CSV results in a separate buffer.
