@@ -138,7 +138,28 @@
 (ert-deftest ob-athena--calculate-column-widths-works ()
   (let* ((rows '(("a" "12345") ("bbb" "678")))
          (widths (ob-athena--calculate-column-widths rows)))
-    (should (equal widths '(3 5)))))
+    (should (equal widths '(3 5))))
+  ;; Empty table
+  (let ((widths (ob-athena--calculate-column-widths nil)))
+    (should (equal widths nil)))
+  ;; Single row
+  (let ((widths (ob-athena--calculate-column-widths '(("one" "two")))))
+    (should (equal widths '(3 3))))
+  ;; Varying column widths
+  (let ((widths (ob-athena--calculate-column-widths
+                 '(("short" "tiny")
+                   ("longertext" "medium-length")
+                   ("m" "xxxxxxxxxxxxxxxx")))))
+    (should (equal widths '(10 16))))
+  ;; Includes empty strings
+  (let ((widths (ob-athena--calculate-column-widths
+                 '(("" "") ("1234" "56") ("7" "")))))
+    (should (equal widths '(4 2))))
+  ;; Mixed types: numbers, symbols (should coerce to string)
+  (let ((widths (ob-athena--calculate-column-widths
+                 `((,(number-to-string 123) ,(symbol-name 'foo))
+                   ("abc" "defghij")))))
+    (should (equal widths '(3 7)))))
 
 (ert-deftest ob-athena--extract-json-field-valid-key ()
   (let ((json "{\"foo\": \"bar\"}"))
