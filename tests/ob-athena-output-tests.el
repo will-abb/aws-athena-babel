@@ -92,7 +92,7 @@
           (should (equal actual expected)))))))
 
 (ert-deftest ob-athena-show-json-results-generates-buffer ()
-  "Test JSON conversion from CSV using mlr."
+  "Ensure JSON output buffer contains expected content from known output file."
   (let ((ob-athena-csv-output-dir "fixtures"))
     (when (executable-find "mlr")
       (copy-file
@@ -103,8 +103,16 @@
         (ob-athena-show-json-results)
         (with-current-buffer "*Athena JSON Results*"
           (goto-char (point-min))
-          (should (looking-at-p "\\["))
-          (should (re-search-forward "\"element\"" nil t)))))))
+          (let ((expected (string-trim-right
+                           (with-temp-buffer
+                             (insert-file-contents
+                              (expand-file-name
+                               (concat test-query-id "-json-output.json")
+                               "fixtures"))
+                             (buffer-string))))
+                (actual (string-trim-right
+                         (substring-no-properties (buffer-string)))))
+            (should (equal actual expected))))))))
 
 (ert-deftest ob-athena--render-org-table-aligns-columns ()
   "Ensure rendered Org table has padded cells per column width."
