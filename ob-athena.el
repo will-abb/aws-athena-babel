@@ -437,7 +437,7 @@ This is done by downloading and displaying results."
   (ob-athena--append-monitor-output
    buffer
    (propertize
-    (format "Total Query Cost: $%.4f (Total Time: %.2f sec)\n"
+    (format "Total Query Cost: $%s (Total Time: %.2f sec)\n"
             ob-athena-total-cost (/ total-ms 1000.0))
     'face 'font-lock-warning-face)))
 
