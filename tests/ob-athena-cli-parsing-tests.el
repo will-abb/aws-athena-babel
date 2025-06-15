@@ -92,27 +92,48 @@
 
 (ert-deftest ob-athena-extract-json-field-missing-key ()
   "Return nil when the key is missing from the JSON string."
-  (should (null (ob-athena--extract-json-field "{\"OtherKey\": \"value\"}" "State"))))
+  ;; Completely missing
+  (should (null (ob-athena--extract-json-field "{\"OtherKey\": \"value\"}" "State")))
+  ;; Key name is similar but different
+  (should (null (ob-athena--extract-json-field "{\"States\": \"RUNNING\"}" "State")))
+  ;; Empty object
+  (should (null (ob-athena--extract-json-field "{}" "State"))))
 
 (ert-deftest ob-athena-extract-json-field-non-json ()
   "Gracefully return nil when input is not valid JSON."
-  (should (null (ob-athena--extract-json-field "not a json" "State"))))
+  ;; Fully invalid JSON
+  (should (null (ob-athena--extract-json-field "not a json" "State")))
+  ;; Empty string
+  (should (null (ob-athena--extract-json-field "" "State")))
+  ;; Null input
+  (should (null (ob-athena--extract-json-field nil "State"))))
 
 (ert-deftest ob-athena-extract-query-result-path ()
   "Test extraction of OutputLocation from Athena query JSON."
-  (let ((json (ob-athena--load-sample-json "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json")))
-    (should (string= (ob-athena--query-result-path json)
-                     "s3://athena-query-results-005343251202/43977ec3-ba3e-4874-912a-73f426532ffb.csv"))))
+  (let ((json-success (ob-athena--load-sample-json
+                       "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json"))
+        (json-failed (ob-athena--load-sample-json
+                      "fixtures/4bf8a6ca-0880-4383-bc76-7a3baeb8b749-query-failed-no-table-exists.json")))
+    (should (string= (ob-athena--query-result-path json-success)
+                     "s3://athena-query-results-005343251202/43977ec3-ba3e-4874-912a-73f426532ffb.csv"))
+    (should (string= (ob-athena--query-result-path json-failed)
+                     "s3://athena-query-results-005343251202/4bf8a6ca-0880-4383-bc76-7a3baeb8b749.csv"))))
 
 (ert-deftest ob-athena-build-timing-section-content ()
-  "Ensure timing section is rendered with expected substrings."
-  (let ((json (ob-athena--load-sample-json "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json"))
-        (output nil))
-    (setq output (ob-athena--build-timing-section json))
-    (should (stringp output))
-    (should (string-match "Execution Time: 3\\.45 sec" output))
-    (should (string-match "Total Time: 3\\.67 sec" output))
-    (should (string-match "Queue Time: 0\\.11 sec" output))))
+  "Ensure timing section is rendered with expected substrings for both success and failure cases."
+  (let ((json-success (ob-athena--load-sample-json
+                       "fixtures/43977ec3-ba3e-4874-912a-73f426532ffb-query-success-select-id-element-datavalue.json"))
+        (json-failed (ob-athena--load-sample-json
+                      "fixtures/4bf8a6ca-0880-4383-bc76-7a3baeb8b749-query-failed-no-table-exists.json")))
+    (let ((output (ob-athena--build-timing-section json-success)))
+      (should (stringp output))
+      (should (string-match "Execution Time: 3\\.45 sec" output))
+      (should (string-match "Total Time: 3\\.67 sec" output))
+      (should (string-match "Queue Time: 0\\.11 sec" output)))
+
+    (let ((output (ob-athena--build-timing-section json-failed)))
+      (should (stringp output))
+      (should (string-match "Execution Time:" output)))))
 
 (ert-deftest ob-athena--calculate-column-widths-works ()
   (let* ((rows '(("a" "12345") ("bbb" "678")))
