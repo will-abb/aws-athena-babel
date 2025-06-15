@@ -72,17 +72,17 @@
   (expand-file-name "athena-query.sql" (temporary-file-directory))
   "Path to the temporary file where the Athena SQL query is stored.")
 
-(defvar ob-athena-s3-output-location "s3://my-bucket/"
+(defvar ob-athena-s3-output-location "s3://athena-query-results-005343251202/"
   "S3 location where Athena stores query results.
 For example: \"s3://my-bucket/path/\".")
 
-(defvar ob-athena-workgroup "my-athena-primary-workgroup"
+(defvar ob-athena-workgroup "primary"
   "Athena workgroup to use.")
 
-(defvar ob-athena-profile "my-aws-athena-profile"
+(defvar ob-athena-profile "williseed-athena"
   "AWS CLI profile to use for Athena queries.")
 
-(defvar ob-athena-database "my-athena-database"
+(defvar ob-athena-database "default"
   "Athena database to query.")
 
 (defvar ob-athena-poll-interval 3
@@ -97,7 +97,7 @@ For example: \"s3://my-bucket/path/\".")
 (defvar ob-athena-result-reuse-max-age 10080
   "Maximum age in minutes of previous Athena query results to reuse.")
 
-(defvar ob-athena-console-region "my-aws-region"
+(defvar ob-athena-console-region "us-east-1"
   "AWS region used to construct Athena Console URLs.")
 
 (defvar ob-athena-csv-output-dir
