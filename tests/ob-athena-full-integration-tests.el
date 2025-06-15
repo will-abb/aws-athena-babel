@@ -58,5 +58,26 @@
                      (and (= (length lines) 21)
                           (> (length content) 1700))))))))
 
+(ert-deftest ob-athena-user-profiles-filter-by-name-score-signup ()
+  "Query test_user_profiles using :var name, score, and signup_date, filtering by inequality. Validate output content and character length."
+  (let* ((sql "SELECT id, name, score, signup_date
+               FROM test_user_profiles
+               WHERE name != '${name}'
+                 AND score >= ${score}
+                 AND signup_date != '${signup_date}';")
+         (result (ob-athena--run-query sql))
+         (csv-path (ob-athena--extract-csv-path (car (last result))))
+         (expected-csv "\"id\",\"name\",\"score\",\"signup_date\"\n\
+\"3\",\"Charlie\",\"95.9\",\"2024-01-03\"\n\
+\"8\",\"Hank\",\"91.4\",\"2024-01-08\"\n\
+\"16\",\"Paul\",\"93.4\",\"2024-01-16\"\n\
+\"18\",\"Ruby\",\"92.0\",\"2024-01-18\"\n"))
+    (should (and (file-exists-p csv-path)
+                 (with-temp-buffer
+                   (insert-file-contents csv-path)
+                   (let ((actual (buffer-string)))
+                     (and
+                      (equal actual expected-csv)
+                      (= (length actual) 163))))))))
 
 ;;; ob-athena-full-integration-tests.el ends here
