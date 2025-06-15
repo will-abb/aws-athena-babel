@@ -6,7 +6,7 @@
 (load (expand-file-name "ob-athena-babel-parsing-tests.el" ob-athena-test-dir))
 (load (expand-file-name "ob-athena-cli-parsing-tests.el" ob-athena-test-dir))
 (load (expand-file-name "ob-athena-cli-test-inputs.el" ob-athena-test-dir))
-(load (expand-file-name "ob-athena-integration-tests.el" ob-athena-test-dir))
+(load (expand-file-name "ob-athena-minimal-integration-tests.el" ob-athena-test-dir))
 (load (expand-file-name "ob-athena-output-tests.el" ob-athena-test-dir))
 
 (provide 'ob-athena-tests)
