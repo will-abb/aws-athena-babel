@@ -29,10 +29,21 @@
 
 (ert-deftest ob-athena--format-csv-table-produces-org ()
   "Test that ob-athena--format-csv-table returns a valid Org-mode table string."
-  (let ((table (ob-athena--format-csv-table test-csv-path)))
+  (let ((table (ob-athena--format-csv-table test-csv-path))
+        (expected
+         "| id          | element | datavalue |
+| US1TXGV0021 | PRCP    | 0         |
+| US1TXGV0021 | SNOW    | 0         |
+| US1KSSG0036 | PRCP    | 0         |
+| GME00126430 | TMAX    | -22       |
+| GME00126430 | TMIN    | -124      |
+| GME00126430 | PRCP    | 0         |
+| GME00126430 | SNWD    | 30        |
+| ASN00041495 | PRCP    | 70        |
+| ASN00099002 | PRCP    | 0         |
+| US1KSMG0005 | PRCP    | 10        |"))
     (should (stringp table))
-    (should (string-match-p "^| id" table))
-    (should (string-match-p "| US1TXGV0021" table))))
+    (should (equal table expected))))
 
 (ert-deftest ob-athena--insert-console-style-results-inserts-content ()
   "Ensure ob-athena--insert-console-style-results inserts an Org table."
