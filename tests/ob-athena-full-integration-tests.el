@@ -72,4 +72,24 @@ AND signup_date != '${signup_date}';
                (equal actual expected-csv)
                (= (length actual) 163))))))))))
 
+(ert-deftest ob-athena-user-profiles-simple-select-all ()
+  "Run a simple SELECT * query on test_user_profiles without any variables or interpolation."
+  (let ((org-src
+         "#+begin_src athena :s3-output-location \"s3://athena-query-results-005343251202/\"  
+SELECT * FROM test_user_profiles;
+#+end_src"))
+    (with-temp-buffer
+      (insert org-src)
+      (goto-char (point-min))
+      (let* ((result (org-babel-execute-src-block))
+             (csv-path (ob-athena--extract-csv-path (car (last result)))))
+        (should
+         (and
+          (file-exists-p csv-path)
+          (with-temp-buffer
+            (insert-file-contents csv-path)
+            (let ((lines (split-string (buffer-string) "\n" t)))
+              (message "Simple SELECT line count: %d" (length lines))
+              (> (length lines) 1)))))))))
+
 ;;; ob-athena-full-integration-tests.el ends here
