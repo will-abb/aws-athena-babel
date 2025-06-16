@@ -1,0 +1,61 @@
+#+begin_src plantuml :file athena-uml.png
+@startuml
+
+class AthenaContext {
+  - ob-athena-s3-output-location: String
+  - ob-athena-database: String
+  - ob-athena-workgroup: String
+  - ob-athena-aws-profile: String
+  - ob-athena-aws-region: String
+  - ob-athena-poll-interval: int
+  - ob-athena-fullscreen: bool
+  - ob-athena-reuse-query-results: bool
+  - ob-athena-reuse-query-results-max-age: int
+  - ob-athena-csv-output-directory: String
+  --
+  + fromParams(params)
+  + toCliFlags()
+}
+
+class AthenaQuery {
+  - sql: String
+  - id: String
+  - status: String
+  - cost: float
+  - csvPath: String
+  - jsonPath: String
+  - context: AthenaContext
+  --
+  + submit()
+  + pollStatus()
+  + downloadResults()
+  + calculateCost()
+}
+
+class AthenaMonitor {
+  - query: AthenaQuery
+  - buffer: buffer
+  - timer: timer
+  --
+  + start()
+  + updateStatus()
+  + render()
+  + stop()
+}
+
+class AthenaRender {
+  --
+  + renderOrgTable(csvPath)
+  + renderSummary(status, cost)
+  + renderError(message)
+  + renderJSON(jsonPath)
+}
+
+AthenaQuery *-- AthenaContext
+AthenaMonitor --> AthenaQuery : controls
+AthenaMonitor ..> AthenaRender : uses
+
+@enduml
+#+end_src
+
+#+RESULTS:
