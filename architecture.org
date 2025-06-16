@@ -1,61 +1,59 @@
-#+begin_src plantuml :file athena-uml.png
+#+begin_src plantuml :file ob-athena-class-model.png
 @startuml
 
-class AthenaContext {
+class ObAthenaContext {
   - ob-athena-s3-output-location: String
-  - ob-athena-database: String
-  - ob-athena-workgroup: String
-  - ob-athena-aws-profile: String
-  - ob-athena-aws-region: String
-  - ob-athena-poll-interval: int
-  - ob-athena-fullscreen: bool
-  - ob-athena-reuse-query-results: bool
-  - ob-athena-reuse-query-results-max-age: int
-  - ob-athena-csv-output-directory: String
+  - ob-athena-database-name: String
+  - ob-athena-workgroup-name: String
+  - ob-athena-aws-profile-name: String
+  - ob-athena-console-region: String
+  - ob-athena-poll-interval-seconds: int
+  - ob-athena-display-fullscreen: bool
+  - ob-athena-reuse-query-results-enabled: bool
+  - ob-athena-reuse-query-results-max-age-mins: int
+  - ob-athena-csv-output-directory-path: String
   --
-  + fromParams(params)
-  + toCliFlags()
+  + ob-athena-context-from-params(params)
+  + ob-athena-context-to-cli-flags()
 }
 
-class AthenaQuery {
-  - sql: String
-  - id: String
-  - status: String
-  - cost: float
-  - csvPath: String
-  - jsonPath: String
-  - context: AthenaContext
+class ObAthenaQuery {
+  - ob-athena-sql-body: String
+  - ob-athena-query-id: String
+  - ob-athena-query-status: String
+  - ob-athena-total-cost-usd: float
+  - ob-athena-local-csv-path: String
+  - ob-athena-local-json-path: String
+  - ob-athena-execution-context: ObAthenaContext
   --
-  + submit()
-  + pollStatus()
-  + downloadResults()
-  + calculateCost()
+  + ob-athena-query-submit()
+  + ob-athena-query-poll-status()
+  + ob-athena-query-download-results()
+  + ob-athena-query-calculate-cost()
 }
 
-class AthenaMonitor {
-  - query: AthenaQuery
-  - buffer: buffer
-  - timer: timer
+class ObAthenaMonitor {
+  - ob-athena-monitored-query: ObAthenaQuery
+  - ob-athena-monitor-buffer: buffer
+  - ob-athena-monitor-timer: timer
   --
-  + start()
-  + updateStatus()
-  + render()
-  + stop()
+  + ob-athena-monitor-start()
+  + ob-athena-monitor-update-status()
+  + ob-athena-monitor-render()
+  + ob-athena-monitor-stop()
 }
 
-class AthenaRender {
+class ObAthenaRender {
   --
-  + renderOrgTable(csvPath)
-  + renderSummary(status, cost)
-  + renderError(message)
-  + renderJSON(jsonPath)
+  + ob-athena-render-org-table(csvPath)
+  + ob-athena-render-summary(status, cost)
+  + ob-athena-render-error-message(message)
+  + ob-athena-render-json-output(jsonPath)
 }
 
-AthenaQuery *-- AthenaContext
-AthenaMonitor --> AthenaQuery : controls
-AthenaMonitor ..> AthenaRender : uses
+ObAthenaQuery *-- ObAthenaContext
+ObAthenaMonitor --> ObAthenaQuery : controls
+ObAthenaMonitor ..> ObAthenaRender : uses
 
 @enduml
 #+end_src
-
-#+RESULTS:
