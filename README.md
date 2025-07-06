@@ -106,6 +106,10 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
 
 *The queries and the outputs have mostly been tested with CloudTrail buckets.*
 
+##  Hints
+
+`ob-athena` supports regular Org Babel header arguments like `:results output`, `:exports both`, `:wrap`, `:prepend`, and `:post`. 
+
 ## License
 
 GPL-3.0-or-later © 2025 [Williams Bosch-Bello](mailto:williamsbosch@gmail.com)
