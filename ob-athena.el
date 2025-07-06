@@ -141,7 +141,7 @@ This builds the context from the current values of `ob-athena-*` variables."
 ;;;###autoload
 (defun org-babel-execute:athena (body params)
   "Execute an Athena SQL query block from Org Babel using BODY and PARAMS.
-Returns clickable Org links with full URL and file path."
+Returns a formatted string with clickable links."
   (let* ((ctx (ob-athena--build-context params))
          (expanded-body (org-babel-expand-body:athena body params))
          (query-id (ob-athena-query-executor expanded-body ctx))
@@ -152,10 +152,10 @@ Returns clickable Org links with full URL and file path."
          (csv-path (format "%s/%s.csv"
                            (directory-file-name (alist-get 'csv-output-dir ctx))
                            query-id)))
-    ;; Return a single, formatted string for clean output.
-    (format "Query submitted. View:\n- %s\n- %s"
-            (format "[[%s][%s]]" console-url console-url)
-            (format "[[file:%s][%s]]" csv-path csv-path))))
+    (list
+     "Query submitted. View:"
+     (format "[[%s][%s]]" console-url console-url)
+     (format "[[file:%s][%s]]" csv-path csv-path))))
 
 (defun ob-athena--build-context (params)
   "Build execution context from PARAMS and defaults."
@@ -258,12 +258,11 @@ Return the QueryExecutionId or raise an error."
   (message "CTX: %S" ctx)
   (let* ((reuse-enabled (alist-get 'result-reuse-enabled ctx))
          (reuse-age (alist-get 'result-reuse-max-age ctx))
-         (reuse-cfg (if reuse-enabled
-                        (format "--result-reuse-configuration %s"
-                                (shell-quote-argument
-                                 (format "ResultReuseByAgeConfiguration={Enabled=true,MaxAgeInMinutes=%d}"
-                                         reuse-age)))
-                      ""))
+         (reuse-cfg (format "--result-reuse-configuration %s"
+                            (shell-quote-argument
+                             (format "ResultReuseByAgeConfiguration={Enabled=%s,MaxAgeInMinutes=%d}"
+                                     (if reuse-enabled "true" "false")
+                                     reuse-age))))
          (workgroup (alist-get 'workgroup ctx))
          (database (alist-get 'database ctx))
          (output-location (alist-get 's3-output-location ctx))
@@ -409,10 +408,13 @@ Includes reason, scanned data size, timing breakdown, and any error messages."
   "Finalize Athena QUERY-ID completion in BUFFER using CTX.
 This is done by downloading and displaying results."
   (let* ((json-output (ob-athena--fetch-query-json query-id ctx))
+         (reused-result (string-match-p "\"ReusedPreviousResult\": true" json-output))
          (total-ms (ob-athena--extract-json-number json-output "TotalExecutionTimeInMillis"))
          (s3-uri (ob-athena--query-result-path json-output))
          (csv-dir (alist-get 'csv-output-dir ctx))
          (csv-path (expand-file-name (format "%s.csv" query-id) csv-dir)))
+    (when reused-result
+      (setq ob-athena-total-cost 0.0))
     (ob-athena--render-query-summary buffer total-ms)
     (when s3-uri
       (ob-athena--download-csv-result s3-uri csv-path ctx)
@@ -442,7 +444,7 @@ This is done by downloading and displaying results."
   (ob-athena--append-monitor-output
    buffer
    (propertize
-    (format "Total Query Cost: $%s (Total Time: %.2f sec)\n"
+    (format "Total Query Cost: $%.6f (Total Time: %.2f sec)\n"
             ob-athena-total-cost (/ total-ms 1000.0))
     'face 'font-lock-warning-face)))
 
