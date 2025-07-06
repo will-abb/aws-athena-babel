@@ -362,11 +362,11 @@ Includes reason, scanned data size, timing breakdown, and any error messages."
                    'face 'font-lock-doc-face))
      (cond
       ((member status '("SUCCEEDED" "CANCELLED"))
-       (propertize (format "Total Cost So Far: $%.4f\n\n" cost)
+       (propertize (format "Total Cost So Far: $%.8f\n\n" cost)
                    'face 'font-lock-preprocessor-face))
       ((string= status "RUNNING")
        (when cost
-         (propertize (format "Estimated Cost So Far: $%.4f\n\n" cost)
+         (propertize (format "Estimated Cost So Far: $%.8f\n\n" cost)
                      'face 'font-lock-preprocessor-face))))
      (ob-athena--build-timing-section json-output)
      (when error-msg
@@ -442,7 +442,7 @@ This is done by downloading and displaying results."
   (ob-athena--append-monitor-output
    buffer
    (propertize
-    (format "Total Query Cost: $%.6f (Total Time: %.2f sec)\n"
+    (format "Total Query Cost: $%.8f (Total Time: %.2f sec)\n"
             ob-athena-total-cost (/ total-ms 1000.0))
     'face 'font-lock-warning-face)))
 
