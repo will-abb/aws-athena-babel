@@ -5,6 +5,7 @@
 (require 'ob-athena)
 
 (defvar auto-save-list-file-prefix nil)
+(setq org-confirm-babel-evaluate nil)
 
 (setq default-directory
       (or (file-name-directory load-file-name)
@@ -14,7 +15,7 @@
 (ert-deftest ob-athena-default-only-profile-test ()
   "Ensure query executes successfully with only :aws-profile specified; others use default context."
   (let* ((org-src
-          "#+begin_src athena
+          "#+begin_src athena :aws-profile williseed-athena
 SELECT * FROM test_user_profiles;
 #+end_src"))
     (with-temp-buffer

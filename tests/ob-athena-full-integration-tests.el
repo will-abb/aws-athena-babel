@@ -7,6 +7,7 @@
 (require 'ob-athena)
 
 (setq org-confirm-babel-evaluate nil)
+(setq org-confirm-babel-evaluate nil)
 
 (setq default-directory
       (or (file-name-directory load-file-name)
