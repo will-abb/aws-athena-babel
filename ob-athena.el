@@ -122,7 +122,9 @@ Internal use only; do not modify directly.")
   "Timer object used internally to poll the status of therunning Athena query.
 Do not modify directly.")
 
-(defconst ob-athena--default-context
+(defun ob-athena--get-default-context ()
+  "Return the default context alist for Athena execution.
+This builds the context from the current values of `ob-athena-*` variables."
   `((s3-output-location . ,ob-athena-s3-output-location)
     (workgroup . ,ob-athena-workgroup)
     (aws-profile . ,ob-athena-profile)
@@ -132,8 +134,7 @@ Do not modify directly.")
     (csv-output-dir . ,ob-athena-csv-output-dir)
     (result-reuse-enabled . ,ob-athena-result-reuse-enabled)
     (result-reuse-max-age . ,ob-athena-result-reuse-max-age)
-    (fullscreen-monitor-buffer . ,ob-athena-fullscreen-monitor-buffer))
-  "Default context for Athena execution, merged with Org Babel header arguments.")
+    (fullscreen-monitor-buffer . ,ob-athena-fullscreen-monitor-buffer)))
 
 (add-to-list 'org-src-lang-modes '("athena" . sql))
 
@@ -158,7 +159,7 @@ Returns clickable Org links with full URL and file path."
 
 (defun ob-athena--build-context (params)
   "Build execution context from PARAMS and defaults."
-  (let ((ctx (copy-tree ob-athena--default-context)))
+  (let ((ctx (ob-athena--get-default-context)))
     (dolist (pair params ctx)
       (when (keywordp (car pair))
         (let ((key (intern (substring (symbol-name (car pair)) 1))))
