@@ -5,8 +5,8 @@
 ;; Author: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Maintainer: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Created: April 05, 2025
-;; Version: 2.1.0
-;; Package-Version: 2.1.0
+;; Version: 2.1.1
+;; Package-Version: 2.1.1
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
 ;; URL: https://github.com/will-abb/aws-athena-babel
@@ -373,7 +373,7 @@ Includes reason, scanned data size, timing breakdown, and any error messages."
      (when reason
        (propertize (format "Reason: %s\n" reason) 'face 'font-lock-doc-face))
      (when bytes
-       (propertize (format "Data Scanned: %.2f MB\n" (/ (float bytes) 1048576))
+       (propertize (format "Data Scanned: %.4f MB\n" (/ (float bytes) 1048576))
                    'face 'font-lock-doc-face))
      (cond
       ((member status '("SUCCEEDED" "CANCELLED"))
@@ -402,11 +402,11 @@ Includes reason, scanned data size, timing breakdown, and any error messages."
          (total (/ total-ms 1000.0))
          (pct (lambda (val) (if (zerop total) "0.0%" (format "%.1f%%" (* (/ val total) 100))))))
     (concat
-     (propertize (format "Preprocessing Time: %.2f sec (%s)\n" pre (funcall pct pre)) 'face 'font-lock-constant-face)
-     (propertize (format "Queue Time: %.2f sec (%s)\n" queue (funcall pct queue)) 'face 'font-lock-constant-face)
-     (propertize (format "Execution Time: %.2f sec (%s)\n" exec (funcall pct exec)) 'face 'font-lock-constant-face)
-     (propertize (format "Finalization Time: %.2f sec (%s)\n" post (funcall pct post)) 'face 'font-lock-constant-face)
-     (propertize (format "Total Time: %.2f sec\n" total) 'face 'font-lock-constant-face))))
+     (propertize (format "Preprocessing Time: %.4f sec (%s)\n" pre (funcall pct pre)) 'face 'font-lock-constant-face)
+     (propertize (format "Queue Time: %.4f sec (%s)\n" queue (funcall pct queue)) 'face 'font-lock-constant-face)
+     (propertize (format "Execution Time: %.4f sec (%s)\n" exec (funcall pct exec)) 'face 'font-lock-constant-face)
+     (propertize (format "Finalization Time: %.4f sec (%s)\n" post (funcall pct post)) 'face 'font-lock-constant-face)
+     (propertize (format "Total Time: %.4f sec\n" total) 'face 'font-lock-constant-face))))
 
 (defun ob-athena--append-monitor-output (buffer output)
   "Append OUTPUT to BUFFER, respecting read-only settings."
@@ -457,7 +457,7 @@ This is done by downloading and displaying results."
   (ob-athena--append-monitor-output
    buffer
    (propertize
-    (format "\nTotal Query Cost: $%.8f (Total Time: %.2f sec)\n"
+    (format "\nTotal Query Cost: $%.8f (Total Time: %.4f sec)\n"
             ob-athena-total-cost (/ total-ms 1000.0))
     'face 'font-lock-warning-face)))
 
