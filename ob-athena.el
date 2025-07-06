@@ -22,11 +22,11 @@
 
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+;; along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -123,9 +123,9 @@ Internal use only; do not modify directly.")
 Do not modify directly.")
 
 (defconst ob-athena--default-context
-  `((output-location . ,ob-athena-s3-output-location)
+  `((s3-output-location . ,ob-athena-s3-output-location)
     (workgroup . ,ob-athena-workgroup)
-    (profile . ,ob-athena-profile)
+    (aws-profile . ,ob-athena-profile)
     (database . ,ob-athena-database)
     (poll-interval . ,ob-athena-poll-interval)
     (console-region . ,ob-athena-console-region)
@@ -229,7 +229,7 @@ Returns clickable Org links with full URL and file path."
   "Display BUFFER based on fullscreen settings in CTX.
 Add buffer to the current workspace."
   (ob-athena--add-to-workspace buffer)
-  (if (alist-get 'fullscreen ctx)
+  (if (alist-get 'fullscreen-monitor-buffer ctx)
       (progn
         (switch-to-buffer buffer)
         (delete-other-windows))
