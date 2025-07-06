@@ -1,0 +1,41 @@
+{
+    "QueryExecution": {
+        "QueryExecutionId": "43977ec3-ba3e-4874-912a-73f426532ffb",
+        "Query": "SELECT id, element, datavalue FROM original_csv LIMIT 10",
+        "StatementType": "DML",
+        "ResultConfiguration": {
+            "OutputLocation": "s3://athena-query-results-005343251202/43977ec3-ba3e-4874-912a-73f426532ffb.csv"
+        },
+        "ResultReuseConfiguration": {
+            "ResultReuseByAgeConfiguration": {
+                "Enabled": false
+            }
+        },
+        "QueryExecutionContext": {
+            "Database": "blogdb"
+        },
+        "Status": {
+            "State": "SUCCEEDED",
+            "SubmissionDateTime": "2025-05-25T14:49:17.854000-05:00",
+            "CompletionDateTime": "2025-05-25T14:49:21.527000-05:00"
+        },
+        "Statistics": {
+            "EngineExecutionTimeInMillis": 3448,
+            "DataScannedInBytes": 4746704,
+            "TotalExecutionTimeInMillis": 3673,
+            "QueryQueueTimeInMillis": 110,
+            "ServicePreProcessingTimeInMillis": 76,
+            "QueryPlanningTimeInMillis": 2081,
+            "ServiceProcessingTimeInMillis": 39,
+            "ResultReuseInformation": {
+                "ReusedPreviousResult": false
+            }
+        },
+        "WorkGroup": "primary",
+        "EngineVersion": {
+            "SelectedEngineVersion": "AUTO",
+            "EffectiveEngineVersion": "Athena engine version 3"
+        },
+        "SubstatementType": "SELECT"
+    }
+}

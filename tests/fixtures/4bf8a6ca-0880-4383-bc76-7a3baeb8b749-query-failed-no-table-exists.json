@@ -1,0 +1,47 @@
+{
+    "QueryExecution": {
+        "QueryExecutionId": "4bf8a6ca-0880-4383-bc76-7a3baeb8b749",
+        "Query": "SELECT element, COUNT(*) AS total FROM original_csv_typo GROUP BY element ORDER BY total DESC",
+        "StatementType": "DML",
+        "ResultConfiguration": {
+            "OutputLocation": "s3://athena-query-results-005343251202/4bf8a6ca-0880-4383-bc76-7a3baeb8b749.csv"
+        },
+        "ResultReuseConfiguration": {
+            "ResultReuseByAgeConfiguration": {
+                "Enabled": false
+            }
+        },
+        "QueryExecutionContext": {
+            "Database": "blogdb"
+        },
+        "Status": {
+            "State": "FAILED",
+            "StateChangeReason": "TABLE_NOT_FOUND: line 1:40: Table 'awsdatacatalog.blogdb.original_csv_typo' does not exist",
+            "SubmissionDateTime": "2025-06-14T21:24:25.164000-05:00",
+            "CompletionDateTime": "2025-06-14T21:24:25.763000-05:00",
+            "AthenaError": {
+                "ErrorCategory": 2,
+                "ErrorType": 1301,
+                "Retryable": false,
+                "ErrorMessage": "TABLE_NOT_FOUND: line 1:40: Table 'awsdatacatalog.blogdb.original_csv_typo' does not exist"
+            }
+        },
+        "Statistics": {
+            "EngineExecutionTimeInMillis": 365,
+            "DataScannedInBytes": 0,
+            "TotalExecutionTimeInMillis": 599,
+            "QueryQueueTimeInMillis": 105,
+            "ServicePreProcessingTimeInMillis": 90,
+            "ServiceProcessingTimeInMillis": 39,
+            "ResultReuseInformation": {
+                "ReusedPreviousResult": false
+            }
+        },
+        "WorkGroup": "primary",
+        "EngineVersion": {
+            "SelectedEngineVersion": "AUTO",
+            "EffectiveEngineVersion": "Athena engine version 3"
+        },
+        "SubstatementType": "SELECT"
+    }
+}
