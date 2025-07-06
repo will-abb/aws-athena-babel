@@ -152,10 +152,10 @@ Returns clickable Org links with full URL and file path."
          (csv-path (format "%s/%s.csv"
                            (directory-file-name (alist-get 'csv-output-dir ctx))
                            query-id)))
-    (list
-     "Query submitted. View:"
-     (format "[[%s][%s]]" console-url console-url)
-     (format "[[file:%s][%s]]" csv-path csv-path))))
+    ;; Return a single, formatted string for clean output.
+    (format "Query submitted. View:\n- %s\n- %s"
+            (format "[[%s][%s]]" console-url console-url)
+            (format "[[file:%s][%s]]" csv-path csv-path))))
 
 (defun ob-athena--build-context (params)
   "Build execution context from PARAMS and defaults."
@@ -352,8 +352,12 @@ Return the QueryExecutionId or raise an error."
 Includes reason, scanned data size, timing breakdown, and any error messages."
   (let ((reason (ob-athena--extract-json-field json-output "StateChangeReason"))
         (bytes (ob-athena--extract-json-number json-output "DataScannedInBytes"))
-        (error-msg (ob-athena--extract-json-field json-output "ErrorMessage")))
+        (error-msg (ob-athena--extract-json-field json-output "ErrorMessage"))
+        (reused-result (string-match-p "\"ReusedPreviousResult\": true" json-output)))
     (concat
+     (when reused-result
+       (propertize "Result reused from a previous query. (No cost incurred for this query)\n"
+                   'face 'font-lock-string-face))
      (when reason
        (propertize (format "Reason: %s\n" reason) 'face 'font-lock-doc-face))
      (when bytes
