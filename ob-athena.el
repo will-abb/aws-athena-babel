@@ -5,8 +5,8 @@
 ;; Author: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Maintainer: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Created: April 05, 2025
-;; Version: 2.1.1
-;; Package-Version: 2.1.1
+;; Version: 2.1.2
+;; Package-Version: 2.1.2
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
 ;; URL: https://github.com/will-abb/aws-athena-babel
@@ -309,15 +309,24 @@ Return the QueryExecutionId or raise an error."
     (goto-char (point-max))
     (insert (format "\n\nQuery started with ID: %s\n" query-id))
     (insert (format "Polling every %d seconds...\n\n"
-                    (alist-get 'poll-interval ctx)))
+                    (let* ((raw-interval (alist-get 'poll-interval ctx))
+                           (num-interval (if (stringp raw-interval) (string-to-number raw-interval) raw-interval)))
+                      (if (and (numberp num-interval) (> num-interval 0)) num-interval 1))))
     (read-only-mode 1)
     (goto-char (point-max))))
 
 (defun ob-athena--start-status-polling (query-id ctx)
   "Begin polling Athena query QUERY-ID status using CTX."
-  (setq ob-athena-query-status-timer
-        (run-at-time 0 (alist-get 'poll-interval ctx)
-                     (lambda () (ob-athena-monitor-query-status query-id ctx)))))
+  (let* ((interval-val (alist-get 'poll-interval ctx))
+         (interval-num (if (stringp interval-val)
+                           (string-to-number interval-val)
+                         interval-val))
+         (sanitized-interval (if (and (numberp interval-num) (> interval-num 0))
+                                 interval-num
+                               1)))
+    (setq ob-athena-query-status-timer
+          (run-at-time 0 sanitized-interval
+                       (lambda () (ob-athena-monitor-query-status query-id ctx))))))
 
 (defun ob-athena-monitor-query-status (query-id ctx)
   "Poll Athena execution status for QUERY-ID using CTX and update monitor buffer."
