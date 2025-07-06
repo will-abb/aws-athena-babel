@@ -4,6 +4,7 @@
 (require 'org)
 (require 'ob-athena)
 
+(setq org-confirm-babel-evaluate nil)
 (defvar auto-save-list-file-prefix nil)
 
 (setq default-directory

@@ -5,6 +5,7 @@
 (require 'ob-athena)
 
 (defvar auto-save-list-file-prefix nil)
+(setq org-confirm-babel-evaluate nil)
 
 (setq default-directory
       (or (file-name-directory load-file-name)

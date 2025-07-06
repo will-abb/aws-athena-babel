@@ -5,8 +5,8 @@
 ;; Author: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Maintainer: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Created: April 05, 2025
-;; Version: 2.0.3
-;; Package-Version: 2.0.3
+;; Version: 2.1.0
+;; Package-Version: 2.1.0
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
 ;; URL: https://github.com/will-abb/aws-athena-babel
@@ -22,11 +22,11 @@
 
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+;; along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -122,25 +122,51 @@ Internal use only; do not modify directly.")
   "Timer object used internally to poll the status of therunning Athena query.
 Do not modify directly.")
 
-(defconst ob-athena--default-context
-  `((output-location . ,ob-athena-s3-output-location)
+(defun ob-athena--get-default-context ()
+  "Return the default context alist for Athena execution.
+This builds the context from the current values of `ob-athena-*` variables."
+  `((s3-output-location . ,ob-athena-s3-output-location)
     (workgroup . ,ob-athena-workgroup)
-    (profile . ,ob-athena-profile)
+    (aws-profile . ,ob-athena-profile)
     (database . ,ob-athena-database)
     (poll-interval . ,ob-athena-poll-interval)
     (console-region . ,ob-athena-console-region)
     (csv-output-dir . ,ob-athena-csv-output-dir)
     (result-reuse-enabled . ,ob-athena-result-reuse-enabled)
     (result-reuse-max-age . ,ob-athena-result-reuse-max-age)
-    (fullscreen-monitor-buffer . ,ob-athena-fullscreen-monitor-buffer))
-  "Default context for Athena execution, merged with Org Babel header arguments.")
+    (fullscreen-monitor-buffer . ,ob-athena-fullscreen-monitor-buffer)))
 
 (add-to-list 'org-src-lang-modes '("athena" . sql))
+
+(defun ob-athena--normalize-boolean (value)
+  "Return nil if VALUE is nil or a string like \"nil\" or \"false\"."
+  (if (or (null value)
+          (and (stringp value)
+               (member-ignore-case (downcase value) '("nil" "false"))))
+      nil
+    value))
+
+(defun ob-athena--build-context (params)
+  "Build execution context from PARAMS and defaults."
+  (let ((ctx (ob-athena--get-default-context))
+        (boolean-keys '(fullscreen-monitor-buffer result-reuse-enabled)))
+    (dolist (pair params)
+      (when (keywordp (car pair))
+        (let* ((header-key (car pair))
+               (header-key-name (string-remove-prefix ":" (symbol-name header-key)))
+               (context-key (cond
+                             ((string-equal header-key-name "fullscreen") 'fullscreen-monitor-buffer)
+                             (t (intern header-key-name))))
+               (val (cdr pair)))
+          (if (member context-key boolean-keys)
+              (setf (alist-get context-key ctx nil 'remove #'eq) (ob-athena--normalize-boolean val))
+            (setf (alist-get context-key ctx nil 'remove #'eq) val)))))
+    ctx))
 
 ;;;###autoload
 (defun org-babel-execute:athena (body params)
   "Execute an Athena SQL query block from Org Babel using BODY and PARAMS.
-Returns clickable Org links with full URL and file path."
+Returns a list of strings which Org Babel formats as a table."
   (let* ((ctx (ob-athena--build-context params))
          (expanded-body (org-babel-expand-body:athena body params))
          (query-id (ob-athena-query-executor expanded-body ctx))
@@ -156,19 +182,9 @@ Returns clickable Org links with full URL and file path."
      (format "[[%s][%s]]" console-url console-url)
      (format "[[file:%s][%s]]" csv-path csv-path))))
 
-(defun ob-athena--build-context (params)
-  "Build execution context from PARAMS and defaults."
-  (let ((ctx (copy-tree ob-athena--default-context)))
-    (dolist (pair params ctx)
-      (when (keywordp (car pair))
-        (let ((key (intern (substring (symbol-name (car pair)) 1))))
-          (setf (alist-get key ctx nil 'remove #'eq) (cdr pair)))))))
-
 (defun org-babel-expand-body:athena (body params)
   "Expand BODY with PARAMS, replacing ${var} using Org Babel :var arguments."
-  (message ">>>>> Running custom org-babel-expand-body:athena with params: %S" params)
   (let ((expanded body))
-    (message ">>>>> BEFORE: %s" body)
     ;; Extract all `:var` bindings
     (dolist (param params)
       (when (and (consp param) (eq (car param) :var))
@@ -185,11 +201,11 @@ Returns clickable Org links with full URL and file path."
                  (regexp-quote pattern)
                  replacement
                  expanded nil 'literal)))))
-    (message ">>>>> AFTER: %s" expanded)
     expanded))
 
 (defun ob-athena-query-executor (query ctx)
   "Submit Athena QUERY using CTX and stream live status to *Athena Monitor* buffer."
+  (setq ob-athena-total-cost 0.0)
   (let ((monitor-buffer (ob-athena--prepare-monitor-buffer ctx))
         (query-id nil))
     (ob-athena--display-monitor-buffer monitor-buffer ctx)
@@ -229,7 +245,7 @@ Returns clickable Org links with full URL and file path."
   "Display BUFFER based on fullscreen settings in CTX.
 Add buffer to the current workspace."
   (ob-athena--add-to-workspace buffer)
-  (if (alist-get 'fullscreen ctx)
+  (if (alist-get 'fullscreen-monitor-buffer ctx)
       (progn
         (switch-to-buffer buffer)
         (delete-other-windows))
@@ -254,36 +270,33 @@ Return the QueryExecutionId or raise an error."
 
 (defun ob-athena--build-start-query-command (ctx)
   "Return the formatted AWS CLI command string to start an Athena query using CTX."
-  (message "CTX: %S" ctx)
   (let* ((reuse-enabled (alist-get 'result-reuse-enabled ctx))
          (reuse-age (alist-get 'result-reuse-max-age ctx))
-         (reuse-cfg (if reuse-enabled
-                        (format "--result-reuse-configuration %s"
-                                (shell-quote-argument
-                                 (format "ResultReuseByAgeConfiguration={Enabled=true,MaxAgeInMinutes=%d}"
-                                         reuse-age)))
-                      ""))
          (workgroup (alist-get 'workgroup ctx))
          (database (alist-get 'database ctx))
          (output-location (alist-get 's3-output-location ctx))
          (profile (alist-get 'aws-profile ctx))
-         (region (alist-get 'console-region ctx)))
-    (format "aws athena start-query-execution \
---query-string %s \
---work-group %s \
---query-execution-context Database=%s \
---result-configuration OutputLocation=%s \
-%s \
---region %s \
---profile %s \
---output text --query 'QueryExecutionId'"
-            (shell-quote-argument (format "file://%s" ob-athena-query-file))
-            (shell-quote-argument workgroup)
-            (shell-quote-argument database)
-            (shell-quote-argument output-location)
-            reuse-cfg
-            (shell-quote-argument region)
-            (shell-quote-argument profile))))
+         (region (alist-get 'console-region ctx))
+         (cmd-parts
+          (list "aws" "athena" "start-query-execution"
+                "--query-string" (shell-quote-argument (format "file://%s" ob-athena-query-file))
+                "--work-group" (shell-quote-argument workgroup)
+                "--query-execution-context" (shell-quote-argument (format "Database=%s" database))
+                "--result-configuration" (shell-quote-argument (format "OutputLocation=%s" output-location)))))
+    ;; Conditionally add the reuse configuration parameter
+    (when reuse-enabled
+      (setq cmd-parts
+            (append cmd-parts
+                    (list "--result-reuse-configuration"
+                          (shell-quote-argument
+                           (format "ResultReuseByAgeConfiguration={Enabled=true,MaxAgeInMinutes=%d}" reuse-age))))))
+    ;; Add the rest of the parameters and join into a single command string
+    (string-join (append cmd-parts
+                         (list "--region" (shell-quote-argument region)
+                               "--profile" (shell-quote-argument profile)
+                               "--output" "text"
+                               "--query" "'QueryExecutionId'"))
+                 " ")))
 
 (defun ob-athena--setup-monitor-state (buffer query-id ctx)
   "Add QUERY-ID to BUFFER and configure interaction keys using CTX."
@@ -351,8 +364,12 @@ Return the QueryExecutionId or raise an error."
 Includes reason, scanned data size, timing breakdown, and any error messages."
   (let ((reason (ob-athena--extract-json-field json-output "StateChangeReason"))
         (bytes (ob-athena--extract-json-number json-output "DataScannedInBytes"))
-        (error-msg (ob-athena--extract-json-field json-output "ErrorMessage")))
+        (error-msg (ob-athena--extract-json-field json-output "ErrorMessage"))
+        (reused-result (string-match-p "\"ReusedPreviousResult\": true" json-output)))
     (concat
+     (when reused-result
+       (propertize "Result reused from a previous query. (No cost incurred for this query)\n"
+                   'face 'font-lock-string-face))
      (when reason
        (propertize (format "Reason: %s\n" reason) 'face 'font-lock-doc-face))
      (when bytes
@@ -360,11 +377,11 @@ Includes reason, scanned data size, timing breakdown, and any error messages."
                    'face 'font-lock-doc-face))
      (cond
       ((member status '("SUCCEEDED" "CANCELLED"))
-       (propertize (format "Total Cost So Far: $%.4f\n\n" cost)
+       (propertize (format "Total Cost So Far: $%.8f\n\n" cost)
                    'face 'font-lock-preprocessor-face))
       ((string= status "RUNNING")
        (when cost
-         (propertize (format "Estimated Cost So Far: $%.4f\n\n" cost)
+         (propertize (format "Estimated Cost So Far: $%.8f\n\n" cost)
                      'face 'font-lock-preprocessor-face))))
      (ob-athena--build-timing-section json-output)
      (when error-msg
@@ -404,10 +421,13 @@ Includes reason, scanned data size, timing breakdown, and any error messages."
   "Finalize Athena QUERY-ID completion in BUFFER using CTX.
 This is done by downloading and displaying results."
   (let* ((json-output (ob-athena--fetch-query-json query-id ctx))
+         (reused-result (string-match-p "\"ReusedPreviousResult\": true" json-output))
          (total-ms (ob-athena--extract-json-number json-output "TotalExecutionTimeInMillis"))
          (s3-uri (ob-athena--query-result-path json-output))
          (csv-dir (alist-get 'csv-output-dir ctx))
          (csv-path (expand-file-name (format "%s.csv" query-id) csv-dir)))
+    (when reused-result
+      (setq ob-athena-total-cost 0.0))
     (ob-athena--render-query-summary buffer total-ms)
     (when s3-uri
       (ob-athena--download-csv-result s3-uri csv-path ctx)
@@ -437,7 +457,7 @@ This is done by downloading and displaying results."
   (ob-athena--append-monitor-output
    buffer
    (propertize
-    (format "Total Query Cost: $%s (Total Time: %.2f sec)\n"
+    (format "Total Query Cost: $%.8f (Total Time: %.2f sec)\n"
             ob-athena-total-cost (/ total-ms 1000.0))
     'face 'font-lock-warning-face)))
 
@@ -531,7 +551,7 @@ This is done by downloading and displaying results."
             (erase-buffer)
             (insert-file-contents json-path)
             (goto-char (point-min))
-            (js-mode))
+            (json-mode))
           (pop-to-buffer json-buf)
           (when ob-athena-fullscreen-monitor-buffer
             (delete-other-windows)))))))

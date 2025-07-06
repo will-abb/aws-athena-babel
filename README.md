@@ -95,6 +95,7 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
    * `C-c C-l` to open the local CSV result file
    * `C-c C-a` to open the Athena Console in your browser
 5. Results are saved by default to `/tmp/<query-id>.csv`
+*Currently this package does not support running concurrent queires. Run only one query at a time*
 ## Output Rendering
 
 - **Org Table**: Console-style format based on Athena's CSV output
