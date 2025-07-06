@@ -141,7 +141,7 @@ This builds the context from the current values of `ob-athena-*` variables."
 ;;;###autoload
 (defun org-babel-execute:athena (body params)
   "Execute an Athena SQL query block from Org Babel using BODY and PARAMS.
-Returns a formatted string with clickable links."
+Returns a list of strings which Org Babel formats as a table."
   (let* ((ctx (ob-athena--build-context params))
          (expanded-body (org-babel-expand-body:athena body params))
          (query-id (ob-athena-query-executor expanded-body ctx))
@@ -160,16 +160,15 @@ Returns a formatted string with clickable links."
 (defun ob-athena--build-context (params)
   "Build execution context from PARAMS and defaults."
   (let ((ctx (ob-athena--get-default-context)))
-    (dolist (pair params ctx)
+    (dolist (pair params)
       (when (keywordp (car pair))
         (let ((key (intern (substring (symbol-name (car pair)) 1))))
-          (setf (alist-get key ctx nil 'remove #'eq) (cdr pair)))))))
+          (setf (alist-get key ctx nil 'remove #'eq) (cdr pair)))))
+    ctx))
 
 (defun org-babel-expand-body:athena (body params)
   "Expand BODY with PARAMS, replacing ${var} using Org Babel :var arguments."
-  (message ">>>>> Running custom org-babel-expand-body:athena with params: %S" params)
   (let ((expanded body))
-    (message ">>>>> BEFORE: %s" body)
     ;; Extract all `:var` bindings
     (dolist (param params)
       (when (and (consp param) (eq (car param) :var))
@@ -186,7 +185,6 @@ Returns a formatted string with clickable links."
                  (regexp-quote pattern)
                  replacement
                  expanded nil 'literal)))))
-    (message ">>>>> AFTER: %s" expanded)
     expanded))
 
 (defun ob-athena-query-executor (query ctx)
@@ -255,35 +253,35 @@ Return the QueryExecutionId or raise an error."
 
 (defun ob-athena--build-start-query-command (ctx)
   "Return the formatted AWS CLI command string to start an Athena query using CTX."
-  (message "CTX: %S" ctx)
-  (let* ((reuse-enabled (alist-get 'result-reuse-enabled ctx))
+  (let* ((reuse-enabled-val (alist-get 'result-reuse-enabled ctx))
+         ;; A value is 'true' unless it's nil or the string "nil".
+         (reuse-enabled (and reuse-enabled-val (not (string-equal "nil" (format "%s" reuse-enabled-val)))))
          (reuse-age (alist-get 'result-reuse-max-age ctx))
-         (reuse-cfg (format "--result-reuse-configuration %s"
-                            (shell-quote-argument
-                             (format "ResultReuseByAgeConfiguration={Enabled=%s,MaxAgeInMinutes=%d}"
-                                     (if reuse-enabled "true" "false")
-                                     reuse-age))))
          (workgroup (alist-get 'workgroup ctx))
          (database (alist-get 'database ctx))
          (output-location (alist-get 's3-output-location ctx))
          (profile (alist-get 'aws-profile ctx))
-         (region (alist-get 'console-region ctx)))
-    (format "aws athena start-query-execution \
---query-string %s \
---work-group %s \
---query-execution-context Database=%s \
---result-configuration OutputLocation=%s \
-%s \
---region %s \
---profile %s \
---output text --query 'QueryExecutionId'"
-            (shell-quote-argument (format "file://%s" ob-athena-query-file))
-            (shell-quote-argument workgroup)
-            (shell-quote-argument database)
-            (shell-quote-argument output-location)
-            reuse-cfg
-            (shell-quote-argument region)
-            (shell-quote-argument profile))))
+         (region (alist-get 'console-region ctx))
+         (cmd-parts
+          (list "aws" "athena" "start-query-execution"
+                "--query-string" (shell-quote-argument (format "file://%s" ob-athena-query-file))
+                "--work-group" (shell-quote-argument workgroup)
+                "--query-execution-context" (shell-quote-argument (format "Database=%s" database))
+                "--result-configuration" (shell-quote-argument (format "OutputLocation=%s" output-location)))))
+    ;; Conditionally add the reuse configuration parameter
+    (when reuse-enabled
+      (setq cmd-parts
+            (append cmd-parts
+                    (list "--result-reuse-configuration"
+                          (shell-quote-argument
+                           (format "ResultReuseByAgeConfiguration={Enabled=true,MaxAgeInMinutes=%d}" reuse-age))))))
+    ;; Add the rest of the parameters and join into a single command string
+    (string-join (append cmd-parts
+                         (list "--region" (shell-quote-argument region)
+                               "--profile" (shell-quote-argument profile)
+                               "--output" "text"
+                               "--query" "'QueryExecutionId'"))
+                 " ")))
 
 (defun ob-athena--setup-monitor-state (buffer query-id ctx)
   "Add QUERY-ID to BUFFER and configure interaction keys using CTX."
@@ -538,7 +536,7 @@ This is done by downloading and displaying results."
             (erase-buffer)
             (insert-file-contents json-path)
             (goto-char (point-min))
-            (js-mode))
+            (json-mode))
           (pop-to-buffer json-buf)
           (when ob-athena-fullscreen-monitor-buffer
             (delete-other-windows)))))))
