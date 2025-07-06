@@ -189,6 +189,7 @@ Returns a list of strings which Org Babel formats as a table."
 
 (defun ob-athena-query-executor (query ctx)
   "Submit Athena QUERY using CTX and stream live status to *Athena Monitor* buffer."
+  (setq ob-athena-total-cost 0.0)
   (let ((monitor-buffer (ob-athena--prepare-monitor-buffer ctx))
         (query-id nil))
     (ob-athena--display-monitor-buffer monitor-buffer ctx)
