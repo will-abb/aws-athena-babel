@@ -138,6 +138,31 @@ This builds the context from the current values of `ob-athena-*` variables."
 
 (add-to-list 'org-src-lang-modes '("athena" . sql))
 
+(defun ob-athena--normalize-boolean (value)
+  "Return nil if VALUE is nil or a string like \"nil\" or \"false\"."
+  (if (or (null value)
+          (and (stringp value)
+               (member-ignore-case (downcase value) '("nil" "false"))))
+      nil
+    value))
+
+(defun ob-athena--build-context (params)
+  "Build execution context from PARAMS and defaults."
+  (let ((ctx (ob-athena--get-default-context))
+        (boolean-keys '(fullscreen-monitor-buffer result-reuse-enabled)))
+    (dolist (pair params)
+      (when (keywordp (car pair))
+        (let* ((header-key (car pair))
+               (header-key-name (string-remove-prefix ":" (symbol-name header-key)))
+               (context-key (cond
+                             ((string-equal header-key-name "fullscreen") 'fullscreen-monitor-buffer)
+                             (t (intern header-key-name))))
+               (val (cdr pair)))
+          (if (member context-key boolean-keys)
+              (setf (alist-get context-key ctx nil 'remove #'eq) (ob-athena--normalize-boolean val))
+            (setf (alist-get context-key ctx nil 'remove #'eq) val)))))
+    ctx))
+
 ;;;###autoload
 (defun org-babel-execute:athena (body params)
   "Execute an Athena SQL query block from Org Babel using BODY and PARAMS.
@@ -156,15 +181,6 @@ Returns a list of strings which Org Babel formats as a table."
      "Query submitted. View:"
      (format "[[%s][%s]]" console-url console-url)
      (format "[[file:%s][%s]]" csv-path csv-path))))
-
-(defun ob-athena--build-context (params)
-  "Build execution context from PARAMS and defaults."
-  (let ((ctx (ob-athena--get-default-context)))
-    (dolist (pair params)
-      (when (keywordp (car pair))
-        (let ((key (intern (substring (symbol-name (car pair)) 1))))
-          (setf (alist-get key ctx nil 'remove #'eq) (cdr pair)))))
-    ctx))
 
 (defun org-babel-expand-body:athena (body params)
   "Expand BODY with PARAMS, replacing ${var} using Org Babel :var arguments."
@@ -254,9 +270,7 @@ Return the QueryExecutionId or raise an error."
 
 (defun ob-athena--build-start-query-command (ctx)
   "Return the formatted AWS CLI command string to start an Athena query using CTX."
-  (let* ((reuse-enabled-val (alist-get 'result-reuse-enabled ctx))
-         ;; A value is 'true' unless it's nil or the string "nil".
-         (reuse-enabled (and reuse-enabled-val (not (string-equal "nil" (format "%s" reuse-enabled-val)))))
+  (let* ((reuse-enabled (alist-get 'result-reuse-enabled ctx))
          (reuse-age (alist-get 'result-reuse-max-age ctx))
          (workgroup (alist-get 'workgroup ctx))
          (database (alist-get 'database ctx))
