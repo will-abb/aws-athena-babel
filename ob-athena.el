@@ -457,7 +457,7 @@ This is done by downloading and displaying results."
   (ob-athena--append-monitor-output
    buffer
    (propertize
-    (format "Total Query Cost: $%.8f (Total Time: %.2f sec)\n"
+    (format "\nTotal Query Cost: $%.8f (Total Time: %.2f sec)\n"
             ob-athena-total-cost (/ total-ms 1000.0))
     'face 'font-lock-warning-face)))
 
@@ -598,10 +598,13 @@ Returns nil if JSON is not a string, malformed, or key is not found."
 
 (defun ob-athena--calculate-query-cost (bytes)
   "Calculate Athena query cost (per-query billing model).
-Rounds BYTES to nearest megabyte with a 10MB minimum charge."
-  (let* ((rounded-up-mb (ceiling (/ bytes 1048576.0)))
-         (billable-mb (max rounded-up-mb 10)))
-    (* (/ (* billable-mb 1048576.0) 1099511627776.0) 5.0)))
+Rounds BYTES to nearest megabyte with a 10MB minimum charge,
+but only if bytes scanned is greater than zero."
+  (if (or (not bytes) (zerop bytes))
+      0.0
+    (let* ((rounded-up-mb (ceiling (/ (float bytes) 1048576.0)))
+           (billable-mb (max rounded-up-mb 10)))
+      (* (/ (* billable-mb 1048576.0) 1099511627776.0) 5.0))))
 
 (defun ob-athena-show-csv-results ()
   "Display raw Athena CSV results in a separate buffer.
