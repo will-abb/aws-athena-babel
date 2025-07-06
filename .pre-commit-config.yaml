@@ -1,0 +1,94 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        name: check-added-large-files
+        stages: [commit]
+      - id: check-json
+        name: check-json
+        stages: [push]
+      - id: check-merge-conflict
+        name: check-merge-conflict
+        stages: [push]
+      - id: check-yaml
+        name: check-yaml
+        stages: [push]
+      - id: detect-aws-credentials
+        name: detect-aws-credentials
+        stages: [commit]
+        args: [--allow-missing-credentials]
+      - id: detect-private-key
+        name: detect-private-key
+        stages: [commit]
+      - id: trailing-whitespace
+        name: trailing-whitespace
+        stages: [push]
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: detect-secrets
+        stages: [commit]
+        args: [--baseline, .secrets.baseline]
+        additional_dependencies: ['gibberish-detector']
+  - repo: https://github.com/aufdenpunkt/pre-commit-js-beautify
+    rev: 1.13.0
+    hooks:
+      - id: js-beautify
+        stages: [push]
+        args: [-r]
+        additional_dependencies: ['js-beautify@1.14.7']
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.15.0
+    hooks:
+      - id: yamlfmt
+        stages: [push]
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.27.2
+    hooks:
+      - id: gitleaks
+        name: gitleaks
+        stages: [push]
+        args:
+          - --baseline-path=.gitleaks_baseline.json
+          - --verbose
+  - repo: local
+    hooks:
+      - id: trufflehog
+        name: trufflehog
+        stages: [push]
+        description: Detect secrets in your data.
+        entry: bash -c 'trufflehog git file://. --since-commit HEAD --fail --no-update'
+        language: system
+  - repo: local
+    # will not do anything unless patterns are added: see readme, or just add provider. Will only be triggered by tracked files
+    # git secrets --add-provider -- ~/repositories/bitbucket/williseed1/configs/repos-git/.custom_git_secrets_provider.sh
+    hooks:
+      - id: git-secrets
+        name: git-secrets
+        stages: [push]
+        entry: git secrets --scan
+        language: system
+        files: '.*'
+        exclude: '(.gitallowed|.gitleaksignore|.gitleaks_baseline.json|.secrets.baseline)'
+  - repo: local
+    hooks:
+      - id: emacs-ert-tests
+        name: Emacs Regression Tests
+        stages: [manual]
+        language: system
+        entry: bash -c 'emacs -Q --batch --no-site-file -L . -L tests -l tests/ob-athena-tests.el -f ert-run-tests-batch-and-exit'
+        pass_filenames: false
+    # - id: emacs-byte-compile
+    #   name: Emacs Byte Compilation
+    #   stages: [manual]
+    #   language: system
+    #   entry: bash -c 'emacs -Q --batch --no-site-file -f batch-byte-compile "$@"'
+    #   files: \.el$
+    # - id: emacs-checkdoc
+    #   name: Emacs Checkdoc Lint
+    #   stages: [manual]
+    #   language: system
+    #   entry: bash -c 'for f in "$@"; do emacs -Q --batch --eval "(progn (find-file \"$f\") (checkdoc))"; done'
+    #   files: \.el$

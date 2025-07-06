@@ -5,8 +5,8 @@
 ;; Author: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Maintainer: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Created: April 05, 2025
-;; Version: 2.0.0
-;; Package-Version: 2.0.0
+;; Version: 2.0.2
+;; Package-Version: 2.0.2
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
 ;; URL: https://github.com/will-abb/aws-athena-babel
@@ -72,17 +72,17 @@
   (expand-file-name "athena-query.sql" (temporary-file-directory))
   "Path to the temporary file where the Athena SQL query is stored.")
 
-(defvar ob-athena-s3-output-location "s3://my-bucket/"
+(defvar ob-athena-s3-output-location "s3://athena-query-results-005343251202/"
   "S3 location where Athena stores query results.
 For example: \"s3://my-bucket/path/\".")
 
-(defvar ob-athena-workgroup "my-athena-primary-workgroup"
+(defvar ob-athena-workgroup "primary"
   "Athena workgroup to use.")
 
-(defvar ob-athena-profile "my-aws-athena-profile"
+(defvar ob-athena-profile "williseed-athena"
   "AWS CLI profile to use for Athena queries.")
 
-(defvar ob-athena-database "my-athena-database"
+(defvar ob-athena-database "default"
   "Athena database to query.")
 
 (defvar ob-athena-poll-interval 3
@@ -97,7 +97,7 @@ For example: \"s3://my-bucket/path/\".")
 (defvar ob-athena-result-reuse-max-age 10080
   "Maximum age in minutes of previous Athena query results to reuse.")
 
-(defvar ob-athena-console-region "my-aws-region"
+(defvar ob-athena-console-region "us-east-1"
   "AWS region used to construct Athena Console URLs.")
 
 (defvar ob-athena-csv-output-dir
@@ -437,7 +437,7 @@ This is done by downloading and displaying results."
   (ob-athena--append-monitor-output
    buffer
    (propertize
-    (format "Total Query Cost: $%.4f (Total Time: %.2f sec)\n"
+    (format "Total Query Cost: $%s (Total Time: %.2f sec)\n"
             ob-athena-total-cost (/ total-ms 1000.0))
     'face 'font-lock-warning-face)))
 
@@ -491,10 +491,12 @@ This is done by downloading and displaying results."
 
 (defun ob-athena--calculate-column-widths (rows)
   "Return list of max widths per column from ROWS."
-  (apply #'cl-mapcar
-         (lambda (&rest cols)
-           (apply #'max (mapcar #'length cols)))
-         rows))
+  (if (null rows)
+      '()
+    (apply #'cl-mapcar
+           (lambda (&rest cols)
+             (apply #'max (mapcar #'length cols)))
+           rows)))
 
 (defun ob-athena--render-org-table (rows widths)
   "Render ROWS into Org-style table using column WIDTHS."
@@ -561,9 +563,13 @@ This is done by downloading and displaying results."
 
 
 (defun ob-athena--extract-json-field (json key)
-  "Extract string value for KEY from JSON string using a regex match."
-  (when (string-match (format "\"%s\": \"\\([^\"]+\\)\"" key) json)
-    (match-string 1 json)))
+  "Extract string value for KEY from JSON string using a regex match.
+Returns nil if JSON is not a string, malformed, or key is not found."
+  (when (and (stringp json) (stringp key))
+    (when (string-match
+           (format "\"%s\"[ \t]*:[ \t]*\"\\([^\"]*\\)\"" (regexp-quote key))
+           json)
+      (match-string 1 json))))
 
 (defun ob-athena--extract-json-number (json key)
   "Extract numeric value for KEY from JSON string using a regex match."
@@ -571,9 +577,11 @@ This is done by downloading and displaying results."
     (string-to-number (match-string 1 json))))
 
 (defun ob-athena--calculate-query-cost (bytes)
-  "Calculate Athena query cost from BYTES scanned."
-  (let ((adjusted (max bytes 10485760)))
-    (* (/ adjusted 1099511627776.0) 5.0)))
+  "Calculate Athena query cost (per-query billing model).
+Rounds BYTES to nearest megabyte with a 10MB minimum charge."
+  (let* ((rounded-up-mb (ceiling (/ bytes 1048576.0)))
+         (billable-mb (max rounded-up-mb 10)))
+    (* (/ (* billable-mb 1048576.0) 1099511627776.0) 5.0)))
 
 (defun ob-athena-show-csv-results ()
   "Display raw Athena CSV results in a separate buffer.
