@@ -1,4 +1,4 @@
-;;; ob-athena-integration-tests.el --- Minimal integration tests -*- lexical-binding: t; -*-
+;;; ob-athena-minimal-integration-tests.el --- Minimal integration tests -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'org)
@@ -16,7 +16,7 @@
   (let ((org-src-lang-modes '(("athena" . sql)))
         (org-babel-load-languages '((athena . t))))
     (with-temp-buffer
-      (insert "#+begin_src athena :aws-profile \"personal-athena-admin-005343251202\" :database \"blogdb\" :s3-output-location \"s3://athena-query-results-005343251202/\" :workgroup \"primary\" :poll-interval 3 :fullscreen t :result-reuse-enabled nil :result-reuse-max-age 10080 :console-region \"us-east-1\" :var select_clause=\"SELECT id, element, datavalue\" :var table=\"original_csv\" :var limit=10\n${select_clause}\nFROM ${table}\nLIMIT ${limit};\n#+end_src")
+      (insert "#+begin_src athena :aws-profile \"williseed-athena\" :database \"blogdb\" :s3-output-location \"s3://athena-query-results-005343251202/\" :workgroup \"primary\" :poll-interval 3 :fullscreen t :result-reuse-enabled nil :result-reuse-max-age 10080 :console-region \"us-east-1\" :var select_clause=\"SELECT id, element, datavalue\" :var table=\"original_csv\" :var limit=10\n${select_clause}\nFROM ${table}\nLIMIT ${limit};\n#+end_src")
       (goto-char (point-min))
       (org-babel-execute-src-block))))
 

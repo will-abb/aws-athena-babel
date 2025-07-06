@@ -1,4 +1,4 @@
-;;; ob-athena-query-start-tests.el --- Tests for query submission logic -*- lexical-binding: t; -*-
+;;; ob-athena-cli-query-execution-tests.el --- Tests for query submission logic -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'ob-athena)
@@ -35,4 +35,4 @@
                      (should-error (ob-athena--start-query-execution '()) :type 'error)))
 
 (provide 'ob-athena-query-start-tests)
-;;; ob-athena-query-start-tests.el ends here
+;;; ob-athena-cli-query-execution-tests.el ends here

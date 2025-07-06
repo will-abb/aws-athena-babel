@@ -1,0 +1,25 @@
+image:
+  name: willisee/pre-commit
+  username: $DOCKER_HUB_USERNAME
+  password: $DOCKER_HUB_PASSWORD
+  email: $DOCKER_HUB_EMAIL
+securityChecks: &securityChecks |-
+  actual_ip=$(/usr/bin/curl -s ifconfig.me || /usr/bin/curl -s https://api.ipify.org)
+  echo "🌐 Public IP address=$actual_ip"
+  if [ "$actual_ip" != "$BITBUCKET_RUNNER_IP_ADDRESS" ]; then
+    echo "❌ Security checks failed: IP Mismatch"
+    exit 1
+  fi
+pipelines:
+  default:
+    - step:
+        name: Pre-Commit Checks
+        runs-on:
+          - 'self.hosted'
+          - 'linux'
+          - 'vanilla'
+        script:
+          - *securityChecks
+          - pre-commit run --all-files --hook-stage commit
+          - pre-commit run --all-files --hook-stage push
+          # - pre-commit run --all-files --hook-stage manual
