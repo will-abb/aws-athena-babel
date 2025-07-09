@@ -5,8 +5,8 @@
 ;; Author: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Maintainer: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Created: April 05, 2025
-;; Version: 2.1.2
-;; Package-Version: 2.1.2
+;; Version: 2.1.3
+;; Package-Version: 2.1.3
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
 ;; URL: https://github.com/will-abb/aws-athena-babel
@@ -321,7 +321,9 @@ Return the QueryExecutionId or raise an error."
          (interval-num (if (stringp interval-val)
                            (string-to-number interval-val)
                          interval-val))
-         (sanitized-interval (if (and (numberp interval-num) (> interval-num 0))
+         ;; Ensure the interval is a number and at least 1.
+         (sanitized-interval (if (and (numberp interval-num)
+                                      (> interval-num 0))
                                  interval-num
                                1)))
     (setq ob-athena-query-status-timer
