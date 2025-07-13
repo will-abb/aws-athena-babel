@@ -72,3 +72,43 @@ ORDER BY
   eventTime ASC
 LIMIT 1000;
 #+end_src
+
+* IAM
+** took action against any iam policy
+#+begin_src athena:var account="12345678910"
+SELECT
+  eventTime,
+  userIdentity.type AS userType,
+  userIdentity.arn AS userArn,
+  userIdentity.accountId AS accountId,
+  userIdentity.sessionContext.sessionIssuer.arn AS sessionIssuerArn,
+  eventName,
+  requestParameters,
+  responseElements,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+  eventSource = 'iam.amazonaws.com'
+  AND eventName IN (
+    'CreatePolicy',
+    'CreatePolicyVersion',
+    'PutPolicyVersion',
+    'SetDefaultPolicyVersion',
+    'DeletePolicyVersion',
+    'DeletePolicy',
+    'TagPolicy',
+    'UntagPolicy',
+    'UpdateAssumeRolePolicy'
+  )
+  AND userIdentity.accountId = '${account}'
+  AND account = '${account}'
+  AND year = '2025'
+  AND month = '03'
+  AND day = '25'
+ORDER BY
+  eventTime ASC
+LIMIT 500;
+#+end_src
+
