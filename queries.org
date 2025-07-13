@@ -1,0 +1,74 @@
+#+title: Queries
+
+* Cloudformation
+** Find who has modified a cloudformation stack
+#+begin_src athena var account="12345678910"
+SELECT
+  eventTime,
+  userIdentity.type AS userType,
+  userIdentity.arn AS userArn,
+  userIdentity.accountId AS accountId,
+  userIdentity.sessionContext.sessionIssuer.arn AS sessionIssuerArn,
+  eventName,
+  requestParameters,
+  responseElements,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+  eventSource = 'cloudformation.amazonaws.com'
+  AND eventName IN (
+    'CreateStack',
+    'UpdateStack',
+    'DeleteStack',
+    'RollbackStack',
+    'ExecuteChangeSet',
+    'CreateChangeSet',
+    'DeleteChangeSet'
+  )
+  AND json_extract_scalar(requestParameters, '$.stackName') = 'MyCloudFormationStackName'
+  AND userIdentity.accountId = '${account}'
+  AND account = '${account}'
+  AND year = '2025'
+  AND month = '07'
+  AND day = '09'
+ORDER BY
+  eventTime ASC
+LIMIT 500;
+#+end_src
+
+* Lambda
+** what lambda has provisioned/modified aws workspaces (can be used to find wha lambdas have performed a specific action)
+#+begin_src athena  :var account=12345678910
+SELECT
+  eventTime,
+  userIdentity.type AS userType,
+  userIdentity.arn AS userArn,
+  userIdentity.accountId AS accountId,
+  userIdentity.sessionContext.sessionIssuer.arn AS sessionIssuerArn,
+  eventName,
+  eventSource,
+  json_extract_scalar(requestParameters, '$.functionName') AS functionName,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+account = '${account}'
+AND region = 'us-west-2'
+AND day IN ('05','06', '07', '08', '09')
+AND userIdentity.type = 'AssumedRole'
+AND userAgent LIKE '%Lambda%'
+AND eventName IN (
+    'CreateWorkspaces',
+    'RebootWorkspaces',
+    'StartWorkspaces',
+    'StopWorkspaces',
+    'TerminateWorkspaces',
+    'ModifyWorkspaceProperties'
+  )
+ORDER BY
+  eventTime ASC
+LIMIT 1000;
+#+end_src

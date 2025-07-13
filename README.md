@@ -110,6 +110,8 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
 
 `ob-athena` supports regular Org Babel header arguments like `:results output`, `:exports both`, `:wrap`, `:prepend`, and `:post`. 
 
+In `queries.org` I've compiled a list of useful queries. They are queries that have worked for me, but by no means have been tested extensively. I'm always looking to add queries others find helpful. Most will probably have to do with quering cloudtrail bucket.
+
 ## License
 
 GPL-3.0-or-later © 2025 [Williams Bosch-Bello](mailto:williamsbosch@gmail.com)
