@@ -74,7 +74,7 @@ LIMIT 1000;
 #+end_src
 
 * IAM
-** took action against any iam policy
+** took action against any iam policy (can be used for roles and other resources modified)
 #+begin_src athena:var account="12345678910"
 SELECT
   eventTime,
@@ -112,3 +112,58 @@ ORDER BY
 LIMIT 500;
 #+end_src
 
+*** actions performed by role
+**** specific date, account, assumable role (sso user role)
+#+begin_src athena :var account=1234345678910
+SELECT
+  eventTime,
+  eventSource,
+  eventName,
+  userIdentity.arn AS roleArn,
+  requestParameters,
+  responseElements,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+  userIdentity.type = 'AssumedRole'
+  AND userIdentity.arn = 'arn:aws:sts::${account}:assumed-role/AWSReservedSSO_role_12345433/username@example.com'
+  AND userIdentity.accountId = '${account}'
+  AND year = '2025'
+  AND month = '04'
+  AND day = '24'
+ORDER BY
+  eventTime ASC
+LIMIT 10000;
+#+end_src
+**** perfomed by aws ecs task role
+#+begin_src athena  :var account=586672212047
+SELECT
+  eventTime,
+  awsRegion,
+  eventSource,
+  eventName,
+  userIdentity.arn AS roleArn,
+  userIdentity.sessionContext.sessionIssuer.userName AS roleName,
+  eventType,
+  requestParameters,
+  responseElements,
+  errorCode,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+  (
+    userIdentity.sessionContext.sessionIssuer.arn = 'arn:aws:iam::${account}:role/ecstaskrole'
+    OR userIdentity.arn LIKE 'arn:aws:sts::${account}:assumed-role/ecstaskrole/%'
+  )
+  AND userIdentity.accountId = '${account}'
+  AND year = '2025'
+  AND month = '07'
+  AND day = '02'
+ORDER BY
+  eventTime ASC
+LIMIT 1000;
+#+end_src
