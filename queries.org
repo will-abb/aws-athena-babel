@@ -1,0 +1,281 @@
+#+title: Queries
+
+* Cloudformation
+** Find who has modified a cloudformation stack
+#+begin_src athena var account="12345678910"
+SELECT
+  eventTime,
+  userIdentity.type AS userType,
+  userIdentity.arn AS userArn,
+  userIdentity.accountId AS accountId,
+  userIdentity.sessionContext.sessionIssuer.arn AS sessionIssuerArn,
+  eventName,
+  requestParameters,
+  responseElements,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+  eventSource = 'cloudformation.amazonaws.com'
+  AND eventName IN (
+    'CreateStack',
+    'UpdateStack',
+    'DeleteStack',
+    'RollbackStack',
+    'ExecuteChangeSet',
+    'CreateChangeSet',
+    'DeleteChangeSet'
+  )
+  AND json_extract_scalar(requestParameters, '$.stackName') = 'MyCloudFormationStackName'
+  AND userIdentity.accountId = '${account}'
+  AND account = '${account}'
+  AND year = '2025'
+  AND month = '07'
+  AND day = '09'
+ORDER BY
+  eventTime ASC
+LIMIT 500;
+#+end_src
+
+* Lambda
+** what lambda has provisioned/modified aws workspaces (can be used to find wha lambdas have performed a specific action)
+#+begin_src athena  :var account=12345678910
+SELECT
+  eventTime,
+  userIdentity.type AS userType,
+  userIdentity.arn AS userArn,
+  userIdentity.accountId AS accountId,
+  userIdentity.sessionContext.sessionIssuer.arn AS sessionIssuerArn,
+  eventName,
+  eventSource,
+  json_extract_scalar(requestParameters, '$.functionName') AS functionName,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+account = '${account}'
+AND region = 'us-west-2'
+AND day IN ('05','06', '07', '08', '09')
+AND userIdentity.type = 'AssumedRole'
+AND userAgent LIKE '%Lambda%'
+AND eventName IN (
+    'CreateWorkspaces',
+    'RebootWorkspaces',
+    'StartWorkspaces',
+    'StopWorkspaces',
+    'TerminateWorkspaces',
+    'ModifyWorkspaceProperties'
+  )
+ORDER BY
+  eventTime ASC
+LIMIT 1000;
+#+end_src
+
+* IAM
+** took action against any iam policy (can be used for roles and other resources modified)
+#+begin_src athena :var account="12345678910"
+SELECT
+  eventTime,
+  userIdentity.type AS userType,
+  userIdentity.arn AS userArn,
+  userIdentity.accountId AS accountId,
+  userIdentity.sessionContext.sessionIssuer.arn AS sessionIssuerArn,
+  eventName,
+  requestParameters,
+  responseElements,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+  eventSource = 'iam.amazonaws.com'
+  AND eventName IN (
+    'CreatePolicy',
+    'CreatePolicyVersion',
+    'PutPolicyVersion',
+    'SetDefaultPolicyVersion',
+    'DeletePolicyVersion',
+    'DeletePolicy',
+    'TagPolicy',
+    'UntagPolicy',
+    'UpdateAssumeRolePolicy'
+  )
+  AND userIdentity.accountId = '${account}'
+  AND account = '${account}'
+  AND year = '2025'
+  AND month = '03'
+  AND day = '25'
+ORDER BY
+  eventTime ASC
+LIMIT 500;
+#+end_src
+*** actions performed by role
+**** specific date, account, assumable role (sso user role)
+#+begin_src athena :var account=1234345678910
+SELECT
+  eventTime,
+  eventSource,
+  eventName,
+  userIdentity.arn AS roleArn,
+  requestParameters,
+  responseElements,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+  userIdentity.type = 'AssumedRole'
+  AND userIdentity.arn = 'arn:aws:sts::${account}:assumed-role/AWSReservedSSO_role_12345433/username@example.com'
+  AND userIdentity.accountId = '${account}'
+  AND year = '2025'
+  AND month = '04'
+  AND day = '24'
+ORDER BY
+  eventTime ASC
+LIMIT 10000;
+#+end_src
+**** perfomed by aws ecs task role
+#+begin_src athena  :var account=12345678910
+SELECT
+  eventTime,
+  awsRegion,
+  eventSource,
+  eventName,
+  userIdentity.arn AS roleArn,
+  userIdentity.sessionContext.sessionIssuer.userName AS roleName,
+  eventType,
+  requestParameters,
+  responseElements,
+  errorCode,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+  (
+    userIdentity.sessionContext.sessionIssuer.arn = 'arn:aws:iam::${account}:role/ecstaskrole'
+    OR userIdentity.arn LIKE 'arn:aws:sts::${account}:assumed-role/ecstaskrole/%'
+  )
+  AND userIdentity.accountId = '${account}'
+  AND year = '2025'
+  AND month = '07'
+  AND day = '02'
+ORDER BY
+  eventTime ASC
+LIMIT 1000;
+#+end_src
+
+* Secrets Manager
+** what api request were made for a secret (who is using this secret)
+#+begin_src athena  :var account=12345678910
+SELECT
+  eventTime,
+  userIdentity.type AS userType,
+  userIdentity.arn AS userArn,
+  userIdentity.accountId AS accountId,
+  eventName,
+  eventSource,
+  sourceIPAddress,
+  userAgent,
+  json_extract_scalar(requestParameters, '$.secretId') AS secretId,
+  errorCode,
+  errorMessage
+FROM
+  cloudtrail_logs_new
+WHERE
+  region = 'us-west-2'
+  AND eventSource = 'secretsmanager.amazonaws.com'
+  AND json_extract_scalar(requestParameters, '$.secretId') = 'arn:aws:secretsmanager:us-west-2:${account}:secret:my/secret/fullarn'
+  AND year = '2025'
+  AND month = '06'
+  AND day = '26'
+ORDER BY
+  eventTime DESC
+LIMIT 100;
+#+end_src
+
+* EC2 Instances
+** who terminated specific ec2 instance (obviously can be modified for other api calls)
+#+begin_src athena :var account=12345678910
+SELECT
+  eventTime,
+  userIdentity.type AS userType,
+  userIdentity.arn AS userArn,
+  userIdentity.accountId AS accountId,
+  userIdentity.sessionContext.sessionIssuer.arn AS sessionIssuerArn,
+  eventName,
+  json_extract(requestParameters, '$.instancesSet.items[0].instanceId') AS instanceId,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+  account = '${account}'
+  AND region = 'us-west-2'
+  AND eventSource = 'ec2.amazonaws.com'
+  AND eventName = 'TerminateInstances'
+    AND json_extract_scalar(requestParameters, '$.instancesSet.items[0].instanceId') = 'i-abc712345678910ab'
+  AND year = '2025'
+  AND month = '05'
+  AND day = '15'
+ORDER BY
+  eventTime DESC
+LIMIT 100;
+#+end_src
+** who started/ran an ec2 instance
+#+begin_src athena  :var account=12345678910
+SELECT
+  eventTime,
+  userIdentity.type AS userType,
+  userIdentity.arn AS userArn,
+  userIdentity.accountId AS accountId,
+  userIdentity.sessionContext.sessionIssuer.arn AS sessionIssuerArn,
+  eventName,
+  json_extract_scalar(responseElements, '$.instancesSet.items[0].instanceId') AS instanceId,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+  account = '${account}'
+  AND region = 'us-west-2'
+  AND eventSource = 'ec2.amazonaws.com'
+  AND eventName IN ('RunInstances', 'StartInstances')
+  AND json_extract_scalar(responseElements, '$.instancesSet.items[0].instanceId') = 'i-123456798789798'
+  AND year = '2025'
+  AND month = '04'
+  AND day = '18'
+ORDER BY
+  eventTime ASC
+LIMIT 100;
+#+end_src
+
+* SNS
+** who deleted topic
+#+begin_src athena  :var account=12345678910
+SELECT
+  eventTime,
+  userIdentity.type AS userType,
+  userIdentity.arn AS userArn,
+  userIdentity.accountId AS accountId,
+  userIdentity.sessionContext.sessionIssuer.arn AS sessionIssuerArn,
+  eventName,
+  json_extract_scalar(requestParameters, '$.topicArn') AS topicArn,
+  sourceIPAddress,
+  userAgent
+FROM
+  cloudtrail_logs_new
+WHERE
+  account = '${account}'
+  AND region = 'us-west-2'
+  AND eventSource = 'sns.amazonaws.com'
+  AND eventName = 'DeleteTopic'
+  AND year = '2025'
+  AND month = '06'
+  AND day = '26'
+ORDER BY
+  eventTime DESC
+LIMIT 100;
+#+end_src
