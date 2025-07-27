@@ -279,3 +279,33 @@ ORDER BY
   eventTime DESC
 LIMIT 100;
 #+end_src
+
+* Route 53
+** find api request against hostzoneid
+#+begin_src athena  :var account=12345678910
+SELECT
+    eventTime,
+    eventName,
+    sourceIPAddress,
+    userIdentity.arn as userArn,
+    -- Extract the Hosted Zone ID from the JSON string in requestParameters
+    json_extract_scalar(requestParameters, '$.hostedZoneId') AS hostedZoneId,
+    -- The full requestParameters contains the details of the change
+    requestParameters
+FROM
+    cloudtrail_logs_new
+WHERE
+    recipientAccountId = '${account}'
+    -- Filter for Route 53 API calls
+    AND eventSource = 'route53.amazonaws.com'
+    -- Filter for the specific event that changes record sets
+    -- (Optional but Recommended) Filter for a specific Hosted Zone
+    AND json_extract_scalar(requestParameters, '$.hostedZoneId') = '123456789ABCDEFG'
+    
+    AND year = '2025'
+    AND month = '07'
+    and day = '23'
+ORDER BY
+    eventTime DESC
+limit 1000;
+#+end_src
