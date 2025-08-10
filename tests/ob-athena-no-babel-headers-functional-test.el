@@ -1,4 +1,4 @@
-;;; ob-athena-no-babel-headers.el --- Description -*- lexical-binding: t; -*-
+;;; ob-athena-no-babel-headers-functional-test.el --- Description -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'org)
@@ -33,3 +33,6 @@ SELECT * FROM test_user_profiles;
         (should (string-match-p "Query submitted. View:" buf))
         (should (string-match-p "console\\.aws\\.amazon\\.com" buf))
         (should (string-match-p "\\[\\[file:.+\\.csv" buf))))))
+
+(provide 'ob-athena-no-babel-headers-functional-test)
+;;; ob-athena-no-babel-headers-functional-test.el ends here

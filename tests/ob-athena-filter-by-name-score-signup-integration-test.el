@@ -69,3 +69,6 @@ AND signup_date != '${signup_date}';
               (let ((actual (buffer-string)))
                 (and (equal actual expected-csv)
                      (= (length actual) 163)))))))))))
+
+(provide 'ob-athena-filter-by-name-score-signup-integration-test)
+;;; ob-athena-filter-by-name-score-signup-integration-test.el ends here

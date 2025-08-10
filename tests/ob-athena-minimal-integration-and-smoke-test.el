@@ -1,4 +1,4 @@
-;;; ob-athena-minimal-integration-tests.el --- Minimal integration tests -*- lexical-binding: t; -*-
+;;; ob-athena-minimal-integration-and-smoke-test.el --- Minimal integration tests -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'org)
@@ -70,3 +70,6 @@ If TIMEOUT is nil, defaults to 10 seconds."
          (csv-path (ob-athena--extract-csv-path (car (last result)))))
     (ob-athena--wait-for-file csv-path)
     (should (ob-athena--csv-has-header-and-data-p csv-path))))
+
+(provide 'ob-athena-minimal-integration-and-smoke-test)
+;;; ob-athena-minimal-integration-and-smoke-test.el ends here

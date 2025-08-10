@@ -1,4 +1,4 @@
-;;; ob-athena-babel-parsing-tests.el --- Tests for ob-athena Babel header processing -*- lexical-binding: t; -*-
+;;; ob-athena-babel-parsing-unit-tests.el --- Tests for ob-athena Babel header processing -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'org)
@@ -65,5 +65,5 @@
     (should (numberp (alist-get 'poll-interval ctx)))
     (should (memq (alist-get 'result-reuse-enabled ctx) '(t nil)))))
 
-(provide 'ob-athena-babel-parsing-tests)
-;;; ob-athena-babel-parsing-tests.el ends here
+(provide 'ob-athena-babel-parsing-unit-tests)
+;;; ob-athena-babel-parsing-unit-tests.el ends here

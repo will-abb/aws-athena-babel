@@ -1,4 +1,4 @@
-;;; ob-athena-output-converstion-tests.el --- Tests for ob-athena query output handling -*- lexical-binding: t; -*-
+;;; ob-athena-output-conversion-unit-tests.el --- Tests for ob-athena query output handling -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'org)
@@ -129,5 +129,5 @@
     (should (string-match-p "| a  | longtext |" table))
     (should (string-match-p "| bb | short    |" table))))
 
-(provide 'ob-athena-output-tests)
-;;; ob-athena-output-converstion-tests.el ends here
+(provide 'ob-athena-output-conversion-unit-tests)
+;;; ob-athena-output-conversion-unit-tests.el ends here

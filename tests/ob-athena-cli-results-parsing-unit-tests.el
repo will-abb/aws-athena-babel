@@ -1,4 +1,4 @@
-;;; ob-athena-cli-results-parsing-tests.el --- Tests for ob-athena JSON parsing -*- lexical-binding: t; -*-
+;;; ob-athena-cli-results-parsing-unit-tests.el --- Tests for ob-athena JSON parsing -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'org)
@@ -188,5 +188,5 @@
   (let ((json "{\"foo\": {\"bar\": \"baz\"}}"))
     (should (null (ob-athena--extract-json-field json "foo")))))
 
-(provide 'ob-athena-cli-parsing-tests)
-;;; ob-athena-cli-results-parsing-tests.el ends here
+(provide 'ob-athena-cli-results-parsing-unit-tests)
+;;; ob-athena-cli-results-parsing-unit-tests.el ends here

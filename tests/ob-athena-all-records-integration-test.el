@@ -54,3 +54,6 @@ SELECT * FROM test_user_profiles;
                   (lines (split-string (buffer-string) "\n" t)))
               (and (= (length lines) 21)
                    (= (length content) 2138))))))))))
+
+(provide 'ob-athena-all-records-integration-test)
+;;; ob-athena-all-records-integration-test.el ends here

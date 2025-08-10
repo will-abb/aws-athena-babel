@@ -1,4 +1,4 @@
-;;; ob-athena-simple-select-all-test.el --- Isolated integration test -*- lexical-binding: t; -*-
+;;; ob-athena-simple-select-all-integration-test.el --- Isolated integration test -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'org)
@@ -51,4 +51,7 @@ SELECT * FROM test_user_profiles;
           (with-temp-buffer
             (insert-file-contents csv-path)
             (let ((lines (split-string (buffer-string) "\n" t)))
-              (> (length lines) 1))))))))
+              (> (length lines) 1)))))))))
+
+(provide 'ob-athena-simple-select-all-integration-test)
+;;; ob-athena-simple-select-all-integration-test.el ends here
