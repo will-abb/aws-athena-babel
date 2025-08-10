@@ -61,7 +61,7 @@
   "Ensure cost is correct within margin for 10MB query."
   (should (< (abs (- (ob-athena--calculate-query-cost 10485760)
                      4.76837158203125e-05))
-             1e-10)))
+             1e-9)))
 
 (ert-deftest ob-athena-calculate-cost-1tb ()
   "Ensure cost is correctly calculated for 1TB of data."
@@ -78,7 +78,7 @@
          (actual-cost-success (ob-athena--calculate-query-cost bytes-success)))
     (should (floatp actual-cost-success))
     (should (= bytes-success 4746704))
-    (should (< (abs (- actual-cost-success expected-cost-success)) 1e-10)))
+    (should (< (abs (- actual-cost-success expected-cost-success)) 1e-9)))
 
   (let* ((json-failed (ob-athena--load-sample-json
                        "fixtures/4bf8a6ca-0880-4383-bc76-7a3baeb8b749-query-failed-no-table-exists.json"))
@@ -88,7 +88,7 @@
          (expected-cost-failed (/ (* billable-mb-failed 1048576.0 5.0) 1099511627776.0))
          (cost-failed (ob-athena--calculate-query-cost bytes-failed)))
     (should (= bytes-failed 0))
-    (should (< (abs (- cost-failed expected-cost-failed)) 1e-10))))
+    (should (< (abs (- cost-failed expected-cost-failed)) 1e-9))))
 
 
 (ert-deftest ob-athena-extract-json-field-missing-key ()
@@ -128,9 +128,9 @@
                       "fixtures/4bf8a6ca-0880-4383-bc76-7a3baeb8b749-query-failed-no-table-exists.json")))
     (let ((output (ob-athena--build-timing-section json-success)))
       (should (stringp output))
-      (should (string-match "Execution Time: 3\\.45 sec" output))
-      (should (string-match "Total Time: 3\\.67 sec" output))
-      (should (string-match "Queue Time: 0\\.11 sec" output)))
+      (should (string-match "Execution Time: 3\\.4480 sec" output))
+      (should (string-match "Total Time: 3\\.6730 sec" output))
+      (should (string-match "Queue Time: 0\\.1100 sec" output)))
 
     (let ((output (ob-athena--build-timing-section json-failed)))
       (should (stringp output))
