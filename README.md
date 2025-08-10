@@ -108,7 +108,8 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
 
 ##  Hints
 
-`ob-athena` supports regular Org Babel header arguments like `:results output`, `:exports both`, `:wrap`, `:prepend`, and `:post`. 
+`ob-athena` supports regular Org Babel header arguments like `:results output`, `:exports both`, `:wrap`, `:prepend`, and `:post`.
+If you have a custom variable that is a supposed to be a string, surround it in quotes. This prevents org babel from interpreting it as a number. For example: account="058264325787", without the quotes the leading number in the account number would be removed.
 
 In `queries.org`, I’ve compiled a list of useful queries. These are queries that have worked for me, but they haven’t been extensively tested. I'm always looking to add queries that others find helpful. Most of them are likely related to querying the CloudTrail bucket.
 ## License
