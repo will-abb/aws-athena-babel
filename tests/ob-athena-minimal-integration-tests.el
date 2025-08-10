@@ -11,6 +11,13 @@
           (file-name-directory buffer-file-name)
           default-directory))
 
+(ert-deftest ob-athena-debug-aws-connection ()
+  "Run 'aws sts get-caller-identity' to print the exact connection error."
+  (message "--- Running AWS CLI Debug ---")
+  (let ((output (shell-command-to-string "aws sts get-caller-identity --profile williseed-admin 2>&1")))
+    (message "STS Output: %s" output)
+    (should (not (string-match-p "error" (downcase output))))))
+
 (defun ob-athena--run-sample-query ()
   "Run a real Athena query and return the Org result."
   (let ((org-src-lang-modes '(("athena" . sql)))
