@@ -4,6 +4,12 @@
 (require 'org)
 (require 'ob-athena)
 
+;; Minimal stub to prevent `void-function json-mode` in batch runs without it loaded
+(unless (fboundp 'json-mode)
+  (defun json-mode ()
+    "Stub for json-mode in test batch runs."
+    (fundamental-mode)))
+
 (defvar auto-save-list-file-prefix nil)
 (setq org-confirm-babel-evaluate nil)
 
