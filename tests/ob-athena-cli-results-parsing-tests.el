@@ -83,12 +83,9 @@
   (let* ((json-failed (ob-athena--load-sample-json
                        "fixtures/4bf8a6ca-0880-4383-bc76-7a3baeb8b749-query-failed-no-table-exists.json"))
          (bytes-failed (ob-athena--extract-json-number json-failed "DataScannedInBytes"))
-         (rounded-up-mb-failed (ceiling (/ bytes-failed 1048576.0)))
-         (billable-mb-failed (max rounded-up-mb-failed 10))
-         (expected-cost-failed (/ (* billable-mb-failed 1048576.0 5.0) 1099511627776.0))
          (cost-failed (ob-athena--calculate-query-cost bytes-failed)))
     (should (= bytes-failed 0))
-    (should (< (abs (- cost-failed expected-cost-failed)) 1e-9))))
+    (should (= cost-failed 0.0))))
 
 
 (ert-deftest ob-athena-extract-json-field-missing-key ()
