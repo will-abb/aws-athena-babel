@@ -14,6 +14,14 @@
           (file-name-directory buffer-file-name)
           default-directory))
 
+(defun ob-athena--wait-for-file (file-path &optional timeout)
+  "Wait up to TIMEOUT seconds for FILE-PATH to exist, checking each second.
+If TIMEOUT is nil, defaults to 10 seconds."
+  (let ((retries (or timeout 10)))
+    (while (and (not (file-exists-p file-path)) (> retries 0))
+      (sleep-for 1)
+      (setq retries (1- retries)))))
+
 (defun ob-athena--extract-csv-path (result)
   "Extract local file path from Org link RESULT."
   (when (stringp result)
@@ -32,6 +40,7 @@ SELECT * FROM test_user_profiles;
       (goto-char (point-min))
       (let* ((result (org-babel-execute-src-block))
              (csv-path (ob-athena--extract-csv-path (car (last result)))))
+        (ob-athena--wait-for-file csv-path)
         (should
          (and
           (file-exists-p csv-path)
@@ -63,6 +72,7 @@ AND signup_date != '${signup_date}';
 \"8\",\"Hank\",\"91.4\",\"2024-01-08\"\n\
 \"16\",\"Paul\",\"93.4\",\"2024-01-16\"\n\
 \"18\",\"Ruby\",\"92.0\",\"2024-01-18\"\n"))
+        (ob-athena--wait-for-file csv-path)
         (should
          (and
           (file-exists-p csv-path)
@@ -84,6 +94,7 @@ SELECT * FROM test_user_profiles;
       (goto-char (point-min))
       (let* ((result (org-babel-execute-src-block))
              (csv-path (ob-athena--extract-csv-path (car (last result)))))
+        (ob-athena--wait-for-file csv-path)
         (should
          (and
           (file-exists-p csv-path)

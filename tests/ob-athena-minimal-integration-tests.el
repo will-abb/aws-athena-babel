@@ -18,6 +18,14 @@
     (message "STS Output: %s" output)
     (should (not (string-match-p "error" (downcase output))))))
 
+(defun ob-athena--wait-for-file (file-path &optional timeout)
+  "Wait up to TIMEOUT seconds for FILE-PATH to exist, checking each second.
+If TIMEOUT is nil, defaults to 10 seconds."
+  (let ((retries (or timeout 10)))
+    (while (and (not (file-exists-p file-path)) (> retries 0))
+      (sleep-for 1)
+      (setq retries (1- retries)))))
+
 (defun ob-athena--run-sample-query ()
   "Run a real Athena query and return the Org result."
   (let ((org-src-lang-modes '(("athena" . sql)))
@@ -60,4 +68,5 @@
   "Verify the downloaded Athena CSV has correct header and at least one data row."
   (let* ((result (ob-athena--run-sample-query))
          (csv-path (ob-athena--extract-csv-path (car (last result)))))
+    (ob-athena--wait-for-file csv-path)
     (should (ob-athena--csv-has-header-and-data-p csv-path))))
