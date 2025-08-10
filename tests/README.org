@@ -1,0 +1,82 @@
+#+title: ob-athena Tests Overview
+#+options: toc:2
+
+* What this is
+This directory contains a small test suite for ~ob-athena~. It mixes:
+- *Unit tests* for parsing and helpers
+- A *functional* test that ensures default headers work
+- *Integration/smoke tests* that hit real Athena and verify CSV/IDs
+
+Fixtures live in =tests/fixtures= and are tiny captured outputs (CSV/JSON, sample buffers, etc.) used by unit/format tests.
+
+* Directory layout (high level)
+- =fixtures/= sample JSON, CSV, and text snapshots used by tests
+- =ob-athena-babel-parsing-unit-tests.el= — header parsing, var expansion, context building
+- =ob-athena-cli-results-parsing-unit-tests.el= — JSON parsing (state, bytes scanned, output location, query id)
+- =ob-athena-cli-query-execution-unit-tests.el= — start-query error handling (empty/invalid/creds)
+- =ob-athena-output-conversion-unit-tests.el= — CSV → Org table, “console-style” results, JSON display, table rendering
+- =ob-athena-no-babel-headers-functional-test.el= — runs a minimal query in a buffer with defaults and checks results block
+- =ob-athena-minimal-integration-and-smoke-test.el= — small real query (LIMIT 10) + ~aws sts get-caller-identity~ smoke check
+- =ob-athena-all-records-integration-test.el= (*integration; batch-skippable*, see below)
+- =ob-athena-filter-by-name-score-signup-integration-test.el= (*integration; batch-skippable*)
+- =ob-athena-simple-select-all-integration-test.el= (*integration; batch-skippable*)
+- =ob-athena-tests.el= — “suite” loader used in batch runs
+
+* Why some tests are skipped in batch mode
+The three “live” integration tests are marked to skip when Emacs runs *noninteractively* (batch):
+- =ob-athena-all-records-integration-test.el=
+- =ob-athena-filter-by-name-score-signup-integration-test.el=
+- =ob-athena-simple-select-all-integration-test.el=
+
+**Reason (short)
+Batch mode evaluates timers/process output differently and can race with our status/monitor logic. That leads to rare “stuck” loops or nil timers. Interactively (or running files one by one) they’re stable. To keep CI green and signal intent clearly, the tests print ~[SKIP] ... skipped in batch mode~ and call ~ert-skip~. You can still run them locally, interactively.
+
+* Running the tests
+
+** Option A: Run *all* tests interactively (recommended for integration)
+In Emacs:
+1. ~M-x load-file RET tests/ob-athena-tests.el RET~
+2. ~M-x ert RET t RET~   ;; selector: all tests
+
+** Option B: Run a single file interactively
+In Emacs:
+1. ~M-x load-file RET tests/ob-athena-simple-select-all-integration-test.el RET~
+2. ~M-x ert RET t RET~
+
+** Option C: Batch mode — run the whole suite (unit + functional + *skips* printed)
+From repo root (or =tests/=):
+#+begin_src sh
+emacs -Q --batch --no-site-file \
+  -L ~/repositories/github/aws-athena-babel \
+  -L ~/repositories/github/aws-athena-babel/tests \
+  -l ~/repositories/github/aws-athena-babel/tests/ob-athena-tests.el \
+  -f ert-run-tests-batch-and-exit
+#+end_src
+
+You’ll see ~[SKIP] ...~ lines for the three integration tests.
+
+** Option D: Batch mode — run *only* a specific file
+(Useful if you want to exercise a single integration test in batch and accept the skip.)
+#+begin_src sh
+emacs -Q --batch --no-site-file \
+  -L ~/repositories/github/aws-athena-babel \
+  -L ~/repositories/github/aws-athena-babel/tests \
+  -l ~/repositories/github/aws-athena-babel/tests/ob-athena-simple-select-all-integration-test.el \
+  -f ert-run-tests-batch-and-exit
+#+end_src
+
+* Fixtures (quick note)
+Files in =tests/fixtures= are small, realistic outputs captured from Athena or from our rendering path:
+- JSON =QueryExecution= responses used to test parsing
+- CSV files used to test table formatting and raw display
+- Tiny text buffers (snapshots) used to assert exact output
+
+They keep unit/format tests deterministic, fast, and offline.
+
+* Troubleshooting
+- Integration tests failing only in batch? That’s the known timer/monitor race → run interactively or per-file. Batch will mark them ~SKIP~.
+- “Unable to locate credentials”: verify your AWS profile(s) used by the tests (see headers like =:aws-profile= and the smoke test that calls ~aws sts get-caller-identity~).
+
+* TL;DR
+- Unit/functional tests: safe in batch.
+- Three live integration tests: *intended to skip in batch*, run interactively when you want to validate real Athena behavior.

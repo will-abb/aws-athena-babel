@@ -1,8 +1,14 @@
-;;; ob-athena-output-converstion-tests.el --- Tests for ob-athena query output handling -*- lexical-binding: t; -*-
+;;; ob-athena-output-conversion-unit-tests.el --- Tests for ob-athena query output handling -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'org)
 (require 'ob-athena)
+
+;; Minimal stub to prevent `void-function json-mode` in batch runs without it loaded
+(unless (fboundp 'json-mode)
+  (defun json-mode ()
+    "Stub for json-mode in test batch runs."
+    (fundamental-mode)))
 
 (defvar auto-save-list-file-prefix nil)
 (setq org-confirm-babel-evaluate nil)
@@ -123,5 +129,5 @@
     (should (string-match-p "| a  | longtext |" table))
     (should (string-match-p "| bb | short    |" table))))
 
-(provide 'ob-athena-output-tests)
-;;; ob-athena-output-converstion-tests.el ends here
+(provide 'ob-athena-output-conversion-unit-tests)
+;;; ob-athena-output-conversion-unit-tests.el ends here
