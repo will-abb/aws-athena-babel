@@ -14,20 +14,20 @@
 
 (ert-deftest ob-athena-build-context-header-overrides-and-defaults ()
   "Ensure all context keys are present and user overrides take effect."
-  (let* ((params '((:output-location . "s3://custom/")
+  (let* ((params '((:s3-output-location . "s3://custom/")
                    (:workgroup . "custom-wg")
                    (:database . "custom-db")
                    (:poll-interval . 1)))
          (ctx (ob-athena--build-context params))
          (expected-keys
-          '(output-location workgroup profile database poll-interval
+          '(s3-output-location workgroup aws-profile database poll-interval
             console-region csv-output-dir result-reuse-enabled
             result-reuse-max-age fullscreen-monitor-buffer)))
     ;; Check all expected keys are present
     (dolist (key expected-keys)
       (should (alist-get key ctx)))
     ;; Check override values
-    (should (equal (alist-get 'output-location ctx) "s3://custom/"))
+    (should (equal (alist-get 's3-output-location ctx) "s3://custom/"))
     (should (equal (alist-get 'workgroup ctx) "custom-wg"))
     (should (equal (alist-get 'database ctx) "custom-db"))
     (should (= (alist-get 'poll-interval ctx) 1))
@@ -57,7 +57,7 @@
   (let* ((params nil)
          (ctx (ob-athena--build-context params))
          (expected-keys
-          '(output-location workgroup profile database poll-interval
+          '(s3-output-location workgroup aws-profile database poll-interval
             console-region csv-output-dir result-reuse-enabled
             result-reuse-max-age fullscreen-monitor-buffer)))
     (dolist (key expected-keys)
