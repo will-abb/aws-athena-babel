@@ -112,6 +112,11 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
 If you have a custom variable that is a supposed to be a string, surround it in quotes. This prevents org babel from interpreting it as a number. For example: account="058264325787", without the quotes the leading number in the account number would be removed.
 
 In `queries.org`, I’ve compiled a list of useful queries. These are queries that have worked for me, but they haven’t been extensively tested. I'm always looking to add queries that others find helpful. Most of them are likely related to querying the CloudTrail bucket.
+
+For using mutiple variables that defined by org babel use ":var" followed by the variables. For texample
+
+:var account="208648672950" region="us-west-2" other_var_integer=12345
+
 ## License
 
 GPL-3.0-or-later © 2025 [Williams Bosch-Bello](mailto:williamsbosch@gmail.com)

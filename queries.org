@@ -301,11 +301,151 @@ WHERE
     -- Filter for the specific event that changes record sets
     -- (Optional but Recommended) Filter for a specific Hosted Zone
     AND json_extract_scalar(requestParameters, '$.hostedZoneId') = '123456789ABCDEFG'
-    
+
     AND year = '2025'
     AND month = '07'
     and day = '23'
 ORDER BY
     eventTime DESC
 limit 1000;
+#+end_src
+* ALB Logs
+** ALB Access Logs
+*** Create partitioned table with log format changes introduced around August 19th, 2025
+#+begin_src athena :aws-profile "default"
+CREATE EXTERNAL TABLE IF NOT EXISTS alb_access_logs_partitioned (
+    type string,
+    time string,
+    elb string,
+    client_ip string,
+    client_port int,
+    target_ip string,
+    target_port int,
+    request_processing_time double,
+    target_processing_time double,
+    response_processing_time double,
+    elb_status_code int,
+    target_status_code string,
+    received_bytes bigint,
+    sent_bytes bigint,
+    request_verb string,
+    request_url string,
+    request_proto string,
+    user_agent string,
+    ssl_cipher string,
+    ssl_protocol string,
+    target_group_arn string,
+    trace_id string,
+    domain_name string,
+    chosen_cert_arn string,
+    matched_rule_priority string,
+    request_creation_time string,
+    actions_executed string,
+    redirect_url string,
+    lambda_error_reason string,
+    target_port_list string,
+    target_status_code_list string,
+    classification string,
+    classification_reason string,
+    conn_trace_id string,
+    listener string,
+    listener_protocol string,
+    server_name string
+    )
+    PARTITIONED BY
+    (
+        day STRING
+    )
+    ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.RegexSerDe'
+    WITH SERDEPROPERTIES (
+    'serialization.format' = '1',
+'input.regex' = '([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*):([0-9]*) ([^ ]*)[:-]([0-9]*) ([-.0-9]*) ([-.0-9]*) ([-.0-9]*) (|[-0-9]*) (-|[-0-9]*) ([-0-9]*) ([-0-9]*) \"([^ ]*) (.*) (- |[^ ]*)\" \"([^\"]*)\" ([A-Z0-9-_]+) ([A-Za-z0-9.-]*) ([^ ]*) \"([^\"]*)\" \"([^\"]*)\" \"([^\"]*)\" ([-.0-9]*) ([^ ]*) \"([^\"]*)\" \"([^\"]*)\" \"([^ ]*)\" \"([^\\s]+?)\" \"([^\\s]+)\" \"([^ ]*)\" \"([^\"]*)\" ([^ ]*) \"([^\"]*)\" \"([^\"]*)\" \"([^\"]*)\"'
+    )
+    LOCATION 's3://load-balancer-logging/access-logs/AWSLogs/12345678910/elasticloadbalancing/us-east-2/'
+    TBLPROPERTIES
+    (
+        "projection.enabled" = "true",
+        "projection.day.type" = "date",
+        "projection.day.range" = "2025/01/01,NOW",
+        "projection.day.format" = "yyyy/MM/dd",
+        "projection.day.interval" = "1",
+        "projection.day.interval.unit" = "DAYS",
+        "storage.location.template" = "s3://load-balancer-logging/access-logs/AWSLogs/12345678910/elasticloadbalancing/us-east-2/${day}"
+    )
+   #+end_src
+*** Daily and Hourly Breakdown of ALB 5xx Errors by Status Code
+#+begin_src athena
+SELECT CAST(from_iso8601_timestamp(time) AS date) AS event_date,
+    hour(from_iso8601_timestamp(time)) AS event_hour,
+    count(*)
+FROM alb_access_logs_partitioned
+WHERE day >= '2025/09/19' and elb_status_code >= 500
+group by CAST(from_iso8601_timestamp(time) AS date), hour(from_iso8601_timestamp(time))
+order by event_date desc, event_hour desc;
+#+end_src
+*** Extract Date, Hour, Minute, and Day of Week from ISO8601 Timestamp (for using alb timestamp format)
+#+begin_src athena
+select
+  CAST(from_iso8601_timestamp('2025-09-04T20:06:39.750437Z') AS date) AS event_date,
+  hour(from_iso8601_timestamp('2025-09-04T20:06:39.750437Z')) AS event_hour,
+  minute(from_iso8601_timestamp('2025-09-04T20:06:39.750437Z')) AS event_minute,
+  day_of_week(from_iso8601_timestamp('2025-09-04T20:06:39.750437Z')) AS event_day_of_week;
+#+end_src
+*** Joined ALB Access and Connection Logs for 5xx Errors
+#+begin_src athena
+SELECT *
+FROM alb_access_logs_partitioned a
+INNER JOIN senior_priv_alb_connection_logs c
+ON a.conn_trace_id = c.conn_trace_id
+WHERE a.elb_status_code >= 500
+AND a.day >= '2025/09/19';
+#+end_src
+* Terraform
+** who created any user or role via terraform (some iam events like these only appear in us-east-1, so you must use that region)
+#+begin_src athena :var account="12345678910" region="us-east-1"
+SELECT
+    eventTime,
+    userIdentity.arn AS userArn,
+    eventName,
+    COALESCE(
+        JSON_EXTRACT_SCALAR(requestParameters, '$.userName'),
+        JSON_EXTRACT_SCALAR(requestParameters, '$.roleName')
+    ) AS principalName,
+    userAgent
+FROM
+    cloudtrail_logs
+WHERE
+    account = '${account}'
+    AND region = '${region}'
+    AND year = '2025'
+    AND month = '08'
+    AND day = '29'
+    AND eventName IN ('CreateUser', 'CreateRole')
+    AND (
+        userAgent LIKE '%Terraform%'
+        OR userAgent LIKE '%HashiCorp%'
+    )
+ORDER BY
+    eventTime ASC;
+#+end_src
+* VPC
+** who created vpc endpoint between two dates dates
+#+begin_src athena :var account="12345678910" region="us-west-1"
+SELECT DISTINCT
+  eventSource,
+  eventName,
+  requestParameters,
+  userIdentity.arn AS roleArn
+FROM
+  cloudtrail_logs_new
+WHERE
+  account = '${account}'
+  AND year = '2025'
+  AND month = '08'
+  AND day BETWEEN '13' AND '15'
+  AND eventName = 'CreateVpcEndpoint'
+ORDER BY
+  eventSource,
+  eventName
+LIMIT 100;
 #+end_src
