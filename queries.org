@@ -400,3 +400,31 @@ ON a.conn_trace_id = c.conn_trace_id
 WHERE a.elb_status_code >= 500
 AND a.day >= '2025/09/19';
 #+end_src
+* Terraform
+** who created any user or role via terraform (some iam events like these only appear in us-east-1, so you must use that region)
+#+begin_src athena :var account="12345678910" region="us-east-1"
+SELECT
+    eventTime,
+    userIdentity.arn AS userArn,
+    eventName,
+    COALESCE(
+        JSON_EXTRACT_SCALAR(requestParameters, '$.userName'),
+        JSON_EXTRACT_SCALAR(requestParameters, '$.roleName')
+    ) AS principalName,
+    userAgent
+FROM
+    cloudtrail_logs
+WHERE
+    account = '${account}'
+    AND region = '${region}'
+    AND year = '2025'
+    AND month = '08'
+    AND day = '29'
+    AND eventName IN ('CreateUser', 'CreateRole')
+    AND (
+        userAgent LIKE '%Terraform%'
+        OR userAgent LIKE '%HashiCorp%'
+    )
+ORDER BY
+    eventTime ASC;
+#+end_src
