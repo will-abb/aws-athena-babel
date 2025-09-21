@@ -301,7 +301,7 @@ WHERE
     -- Filter for the specific event that changes record sets
     -- (Optional but Recommended) Filter for a specific Hosted Zone
     AND json_extract_scalar(requestParameters, '$.hostedZoneId') = '123456789ABCDEFG'
-    
+
     AND year = '2025'
     AND month = '07'
     and day = '23'
@@ -311,8 +311,8 @@ limit 1000;
 #+end_src
 * ALB Logs
 ** ALB Access Logs
-*** Create partitioned table with log format changes introduced around August 19th, 2025 
-#+begin_src athena :aws-profile "default" 
+*** Create partitioned table with log format changes introduced around August 19th, 2025
+#+begin_src athena :aws-profile "default"
 CREATE EXTERNAL TABLE IF NOT EXISTS alb_access_logs_partitioned (
     type string,
     time string,
@@ -373,8 +373,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS alb_access_logs_partitioned (
         "storage.location.template" = "s3://load-balancer-logging/access-logs/AWSLogs/12345678910/elasticloadbalancing/us-east-2/${day}"
     )
    #+end_src
-*** Daily and Hourly Breakdown of ALB 5xx Errors by Status Code 
-#+begin_src athena 
+*** Daily and Hourly Breakdown of ALB 5xx Errors by Status Code
+#+begin_src athena
 SELECT CAST(from_iso8601_timestamp(time) AS date) AS event_date,
     hour(from_iso8601_timestamp(time)) AS event_hour,
     count(*)
@@ -448,4 +448,4 @@ ORDER BY
   eventSource,
   eventName
 LIMIT 100;
-#+end_src 
+#+end_src
