@@ -311,7 +311,7 @@ limit 1000;
 #+end_src
 * ALB Logs
 ** ALB Access Logs
-*** Create table with log format changes introduced around August 19th, 2025 
+*** Create partitioned table with log format changes introduced around August 19th, 2025 
 #+begin_src athena :aws-profile "default" 
 CREATE EXTERNAL TABLE IF NOT EXISTS alb_access_logs_partitioned (
     type string,
@@ -373,3 +373,30 @@ CREATE EXTERNAL TABLE IF NOT EXISTS alb_access_logs_partitioned (
         "storage.location.template" = "s3://load-balancer-logging/access-logs/AWSLogs/12345678910/elasticloadbalancing/us-east-2/${day}"
     )
    #+end_src
+*** Daily and Hourly Breakdown of ALB 5xx Errors by Status Code 
+#+begin_src athena 
+SELECT CAST(from_iso8601_timestamp(time) AS date) AS event_date,
+    hour(from_iso8601_timestamp(time)) AS event_hour,
+    count(*)
+FROM alb_access_logs_partitioned
+WHERE day >= '2025/09/19' and elb_status_code >= 500
+group by CAST(from_iso8601_timestamp(time) AS date), hour(from_iso8601_timestamp(time))
+order by event_date desc, event_hour desc;
+#+end_src
+*** Extract Date, Hour, Minute, and Day of Week from ISO8601 Timestamp (for using alb timestamp format)
+#+begin_src athena
+select
+  CAST(from_iso8601_timestamp('2025-09-04T20:06:39.750437Z') AS date) AS event_date,
+  hour(from_iso8601_timestamp('2025-09-04T20:06:39.750437Z')) AS event_hour,
+  minute(from_iso8601_timestamp('2025-09-04T20:06:39.750437Z')) AS event_minute,
+  day_of_week(from_iso8601_timestamp('2025-09-04T20:06:39.750437Z')) AS event_day_of_week;
+#+end_src
+*** Joined ALB Access and Connection Logs for 5xx Errors
+#+begin_src athena
+SELECT *
+FROM alb_access_logs_partitioned a
+INNER JOIN senior_priv_alb_connection_logs c
+ON a.conn_trace_id = c.conn_trace_id
+WHERE a.elb_status_code >= 500
+AND a.day >= '2025/09/19';
+#+end_src
