@@ -428,3 +428,24 @@ WHERE
 ORDER BY
     eventTime ASC;
 #+end_src
+* VPC
+** who created vpc endpoint between two dates dates
+#+begin_src athena :var account="12345678910" region="us-west-1"
+SELECT DISTINCT
+  eventSource,
+  eventName,
+  requestParameters,
+  userIdentity.arn AS roleArn
+FROM
+  cloudtrail_logs_new
+WHERE
+  account = '${account}'
+  AND year = '2025'
+  AND month = '08'
+  AND day BETWEEN '13' AND '15'
+  AND eventName = 'CreateVpcEndpoint'
+ORDER BY
+  eventSource,
+  eventName
+LIMIT 100;
+#+end_src 
