@@ -6,6 +6,8 @@
 
 [See a video demonstration](https://youtu.be/2VoVpH3ceG0)
 
+[Watch **Source Header Explanation** video](https://www.youtube.com/watch?v=aVAfLEuNcc4) to learn how athena Org Babel header works and how to configure them for queries.
+
 ## Features
 
 - Submit Athena queries via AWS CLI directly from Org Babel blocks
