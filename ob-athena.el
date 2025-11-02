@@ -5,8 +5,8 @@
 ;; Author: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Maintainer: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Created: April 05, 2025
-;; Version: 2.1.3
-;; Package-Version: 2.1.3
+;; Version: 2.1.4
+;; Package-Version: 2.1.4
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
 ;; URL: https://github.com/will-abb/aws-athena-babel
@@ -168,19 +168,27 @@ This builds the context from the current values of `ob-athena-*` variables."
   "Execute an Athena SQL query block from Org Babel using BODY and PARAMS.
 Returns a list of strings which Org Babel formats as a table."
   (let* ((ctx (ob-athena--build-context params))
-         (expanded-body (org-babel-expand-body:athena body params))
-         (query-id (ob-athena-query-executor expanded-body ctx))
-         (console-url (format "https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history/%s"
-                              (alist-get 'console-region ctx)
-                              (alist-get 'console-region ctx)
-                              query-id))
-         (csv-path (format "%s/%s.csv"
-                           (directory-file-name (alist-get 'csv-output-dir ctx))
-                           query-id)))
-    (list
-     "Query submitted. View:"
-     (format "[[%s][%s]]" console-url console-url)
-     (format "[[file:%s][%s]]" csv-path csv-path))))
+         (expanded-body (org-babel-expand-body:athena body params)))
+    (condition-case err
+        (let* ((query-id (ob-athena-query-executor expanded-body ctx))
+               (console-url (format "https://%s.console.aws.amazon.com/athena/home?region=%s#/query-editor/history/%s"
+                                    (alist-get 'console-region ctx)
+                                    (alist-get 'console-region ctx)
+                                    query-id))
+               (csv-path (format "%s/%s.csv"
+                                 (directory-file-name (alist-get 'csv-output-dir ctx))
+                                 query-id)))
+          ;; This is the normal, successful result
+          (list
+           "Query submitted. View:"
+           (format "[[%s][%s]]" console-url console-url)
+           (format "[[file:%s][%s]]" csv-path csv-path)))
+
+      ;; If an error occurs, return the error message as the org-mode result
+      ('error
+       (list
+        "Error starting query:"
+        (error-message-string err))))))
 
 (defun org-babel-expand-body:athena (body params)
   "Expand BODY with PARAMS, replacing ${var} using Org Babel :var arguments."
@@ -210,7 +218,19 @@ Returns a list of strings which Org Babel formats as a table."
         (query-id nil))
     (ob-athena--display-monitor-buffer monitor-buffer ctx)
     (ob-athena--write-query-to-file query)
-    (setq query-id (ob-athena--start-query-execution ctx))
+
+    (condition-case err
+        (setq query-id (ob-athena--start-query-execution ctx))
+      ('error
+       (ob-athena--append-monitor-output
+        monitor-buffer
+        (concat "\n\n"
+                (propertize "--- QUERY FAILED TO START ---\n"
+                            'face '(:weight bold :underline t))
+                (propertize (error-message-string err) 'face 'error)
+                "\n"))
+       (signal (car err) (cdr err))))
+    ;; This code is only reached if the query started successfully
     (ob-athena--setup-monitor-state monitor-buffer query-id ctx)
     (ob-athena--start-status-polling query-id ctx)
     query-id))
