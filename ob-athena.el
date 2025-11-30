@@ -5,8 +5,8 @@
 ;; Author: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Maintainer: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Created: April 05, 2025
-;; Version: 2.1.4
-;; Package-Version: 2.1.4
+;; Version: 2.1.5
+;; Package-Version: 2.1.5
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
 ;; URL: https://github.com/will-abb/aws-athena-babel
@@ -64,6 +64,7 @@
 (require 'subr-x)
 
 (declare-function persp-add-buffer "persp-mode.el")
+(declare-function json-mode "json-mode")
 
 (defvar-local ob-athena--context nil
   "Buffer-local context alist used for Athena query execution and tracking.")
@@ -185,7 +186,7 @@ Returns a list of strings which Org Babel formats as a table."
            (format "[[file:%s][%s]]" csv-path csv-path)))
 
       ;; If an error occurs, return the error message as the org-mode result
-      ('error
+      (error
        (list
         "Error starting query:"
         (error-message-string err))))))
@@ -221,7 +222,7 @@ Returns a list of strings which Org Babel formats as a table."
 
     (condition-case err
         (setq query-id (ob-athena--start-query-execution ctx))
-      ('error
+      (error
        (ob-athena--append-monitor-output
         monitor-buffer
         (concat "\n\n"
@@ -582,7 +583,9 @@ This is done by downloading and displaying results."
             (erase-buffer)
             (insert-file-contents json-path)
             (goto-char (point-min))
-            (json-mode))
+            (if (fboundp 'json-mode)
+                (json-mode)
+              (js-mode)))
           (pop-to-buffer json-buf)
           (when ob-athena-fullscreen-monitor-buffer
             (delete-other-windows)))))))
