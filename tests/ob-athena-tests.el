@@ -4,6 +4,8 @@
 (defconst ob-athena-test-dir
   (file-name-directory (or load-file-name buffer-file-name)))
 
+(load (expand-file-name "ob-athena-test-helpers.el" ob-athena-test-dir))
+
 ;; unit tests
 (load (expand-file-name "ob-athena-babel-parsing-unit-tests.el" ob-athena-test-dir))
 (load (expand-file-name "ob-athena-cli-results-parsing-unit-tests.el" ob-athena-test-dir))
@@ -12,7 +14,9 @@
 ;; functional tests
 (load (expand-file-name "ob-athena-no-babel-headers-functional-test.el" ob-athena-test-dir))
 
-;; integration tests, only one can run in batch mode, others you can run locally with ERT function because timer variables collide
+;; live tests: the minimal smoke test runs in batch; the three broader
+;; integration tests below load in batch but intentionally call `ert-skip`
+;; and are meant to be run interactively when validating live Athena behavior.
 (load (expand-file-name "ob-athena-minimal-integration-and-smoke-test.el" ob-athena-test-dir))
 (load (expand-file-name "ob-athena-all-records-integration-test.el" ob-athena-test-dir))
 (load (expand-file-name "ob-athena-filter-by-name-score-signup-integration-test.el" ob-athena-test-dir))
