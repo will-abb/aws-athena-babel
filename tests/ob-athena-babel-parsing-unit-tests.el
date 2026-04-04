@@ -3,6 +3,10 @@
 (require 'ert)
 (require 'org)
 (require 'ob-athena)
+(load (expand-file-name
+       "ob-athena-test-helpers.el"
+       (file-name-directory (or load-file-name buffer-file-name default-directory)))
+      nil t)
 
 (setq org-confirm-babel-evaluate nil)
 (defvar auto-save-list-file-prefix nil)
@@ -44,7 +48,8 @@
 
 (ert-deftest ob-athena-parsed-query-matches-expected ()
   "Check that parsed query from ob-athena contains expected substituted values."
-  (let* ((fixture "fixtures/0f7bf33b-3eb1-4e6c-a0c3-d5316894b062-parsed-ob-query.sql")
+  (let* ((fixture (ob-athena-test-fixture-path
+                   "0f7bf33b-3eb1-4e6c-a0c3-d5316894b062-parsed-ob-query.sql"))
          (query (with-temp-buffer
                   (insert-file-contents fixture)
                   (buffer-string))))

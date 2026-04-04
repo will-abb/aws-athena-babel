@@ -3,6 +3,10 @@
 (require 'ert)
 (require 'org)
 (require 'ob-athena)
+(load (expand-file-name
+       "ob-athena-test-helpers.el"
+       (file-name-directory (or load-file-name buffer-file-name default-directory)))
+      nil t)
 
 (setq org-confirm-babel-evaluate nil)
 
@@ -33,32 +37,26 @@ If TIMEOUT is nil, defaults to 10 seconds."
     (message "[SKIP] ob-athena-user-profiles-return-all-records: skipped in batch mode")
     (ert-skip "Skipped in batch mode (racy in batch)."))
 
-  ;; Pre/post cleanup for any leaked global state
-  (when (and (boundp 'ob-athena-query-status-timer)
-             (timerp ob-athena-query-status-timer))
-    (cancel-timer ob-athena-query-status-timer)
-    (setq ob-athena-query-status-timer nil))
-  (when (get-buffer "*Athena Monitor*")
-    (kill-buffer "*Athena Monitor*"))
-  (let ((org-src
-         "#+begin_src athena :aws-profile \"williseed-athena\" :database \"default\" :s3-output-location \"s3://athen-query-test-queries-005343251202/test-data/all-records-test/\" :csv-output-dir \"/tmp/all-records-test\" :query-file \"/tmp/all-records-test.sql\" :workgroup \"primary\" :poll-interval 3 :fullscreen nil :result-reuse-enabled nil :result-reuse-max-age 10080 :console-region \"us-east-1\"
+  (ob-athena-test-with-clean-state
+    (let ((org-src
+           "#+begin_src athena :aws-profile \"williseed-athena\" :database \"default\" :s3-output-location \"s3://athen-query-test-queries-005343251202/test-data/all-records-test/\" :csv-output-dir \"/tmp/all-records-test\" :query-file \"/tmp/all-records-test.sql\" :workgroup \"primary\" :poll-interval 3 :fullscreen nil :result-reuse-enabled nil :result-reuse-max-age 10080 :console-region \"us-east-1\"
 SELECT * FROM test_user_profiles;
 #+end_src"))
-    (with-temp-buffer
-      (insert org-src)
-      (goto-char (point-min))
-      (let* ((result (org-babel-execute-src-block))
-             (csv-path (ob-athena--extract-csv-path (car (last result)))))
-        (ob-athena--wait-for-file csv-path)
-        (should
-         (and
-          (file-exists-p csv-path)
-          (with-temp-buffer
-            (insert-file-contents csv-path)
-            (let ((content (buffer-string))
-                  (lines (split-string (buffer-string) "\n" t)))
-              (and (= (length lines) 21)
-                   (= (length content) 2138))))))))))
+      (with-temp-buffer
+        (insert org-src)
+        (goto-char (point-min))
+        (let* ((result (org-babel-execute-src-block))
+               (csv-path (ob-athena--extract-csv-path (car (last result)))))
+          (ob-athena--wait-for-file csv-path)
+          (should
+           (and
+            (file-exists-p csv-path)
+            (with-temp-buffer
+              (insert-file-contents csv-path)
+              (let ((content (buffer-string))
+                    (lines (split-string (buffer-string) "\n" t)))
+                (and (= (length lines) 21)
+                     (= (length content) 2138)))))))))))
 
 (provide 'ob-athena-all-records-integration-test)
 ;;; ob-athena-all-records-integration-test.el ends here

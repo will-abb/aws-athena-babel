@@ -3,6 +3,10 @@
 (require 'ert)
 (require 'org)
 (require 'ob-athena)
+(load (expand-file-name
+       "ob-athena-test-helpers.el"
+       (file-name-directory (or load-file-name buffer-file-name default-directory)))
+      nil t)
 
 (setq org-confirm-babel-evaluate nil)
 
@@ -16,23 +20,24 @@
 (ert-deftest ob-athena-default-only-profile-test ()
   "Runs a minimal query and verifies that an Org-results block with
    a console link and a CSV link is inserted."
-  (let ((org-src
-         "#+begin_src athena :results output
+  (ob-athena-test-with-clean-state
+    (let ((org-src
+           "#+begin_src athena :results output
 SELECT * FROM test_user_profiles;
 #+end_src"))
-    (with-temp-buffer
-      (insert org-src)
-      (goto-char (point-min))
-      (org-mode)
+      (with-temp-buffer
+        (insert org-src)
+        (goto-char (point-min))
+        (org-mode)
 
-      ;; run the query
-      (org-babel-execute-src-block)
+        ;; run the query
+        (org-babel-execute-src-block)
 
-      (let ((buf (substring-no-properties (buffer-string))))
-        (should (string-match-p "#\\+RESULTS:" buf))
-        (should (string-match-p "Query submitted. View:" buf))
-        (should (string-match-p "console\\.aws\\.amazon\\.com" buf))
-        (should (string-match-p "\\[\\[file:.+\\.csv" buf))))))
+        (let ((buf (substring-no-properties (buffer-string))))
+          (should (string-match-p "#\\+RESULTS:" buf))
+          (should (string-match-p "Query submitted. View:" buf))
+          (should (string-match-p "console\\.aws\\.amazon\\.com" buf))
+          (should (string-match-p "\\[\\[file:.+\\.csv" buf)))))))
 
 (provide 'ob-athena-no-babel-headers-functional-test)
 ;;; ob-athena-no-babel-headers-functional-test.el ends here

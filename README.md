@@ -108,6 +108,22 @@ If you're using `use-package` in your Emacs config, you can load `ob-athena` lik
 
 *The queries and the outputs have mostly been tested with CloudTrail buckets.*
 
+## Testing
+
+The repository includes a mixed ERT suite under [tests/](tests) covering parser helpers, output conversion, functional behavior, and live Athena integration paths.
+
+From the repo root, load the full suite in batch with:
+
+```sh
+emacs -Q --batch --no-site-file \
+  -L . \
+  -L tests \
+  -l tests/ob-athena-tests.el \
+  -f ert-run-tests-batch-and-exit
+```
+
+For the full testing notes, file layout, and batch-vs-interactive guidance, see [tests/README.org](tests/README.org).
+
 ##  Hints
 
 `ob-athena` supports regular Org Babel header arguments like `:results output`, `:exports both`, `:wrap`, `:prepend`, and `:post`.

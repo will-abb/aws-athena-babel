@@ -3,6 +3,10 @@
 (require 'ert)
 (require 'org)
 (require 'ob-athena)
+(load (expand-file-name
+       "ob-athena-test-helpers.el"
+       (file-name-directory (or load-file-name buffer-file-name default-directory)))
+      nil t)
 
 (setq org-confirm-babel-evaluate nil)
 
@@ -33,30 +37,24 @@ If TIMEOUT is nil, defaults to 10 seconds."
     (message "[SKIP] ob-athena-user-profiles-simple-select-all: skipped in batch mode")
     (ert-skip "Skipped in batch mode (racy in batch)."))
 
-  ;; Pre/post cleanup for any leaked global state
-  (when (and (boundp 'ob-athena-query-status-timer)
-             (timerp ob-athena-query-status-timer))
-    (cancel-timer ob-athena-query-status-timer)
-    (setq ob-athena-query-status-timer nil))
-  (when (get-buffer "*Athena Monitor*")
-    (kill-buffer "*Athena Monitor*"))
-  (let ((org-src
-         "#+begin_src athena :s3-output-location \"s3://athena-query-results-005343251202/\"
+  (ob-athena-test-with-clean-state
+    (let ((org-src
+           "#+begin_src athena :s3-output-location \"s3://athena-query-results-005343251202/\"
 SELECT * FROM test_user_profiles;
 #+end_src"))
-    (with-temp-buffer
-      (insert org-src)
-      (goto-char (point-min))
-      (let* ((result (org-babel-execute-src-block))
-             (csv-path (ob-athena--extract-csv-path (car (last result)))))
-        (ob-athena--wait-for-file csv-path)
-        (should
-         (and
-          (file-exists-p csv-path)
-          (with-temp-buffer
-            (insert-file-contents csv-path)
-            (let ((lines (split-string (buffer-string) "\n" t)))
-              (> (length lines) 1)))))))))
+      (with-temp-buffer
+        (insert org-src)
+        (goto-char (point-min))
+        (let* ((result (org-babel-execute-src-block))
+               (csv-path (ob-athena--extract-csv-path (car (last result)))))
+          (ob-athena--wait-for-file csv-path)
+          (should
+           (and
+            (file-exists-p csv-path)
+            (with-temp-buffer
+              (insert-file-contents csv-path)
+              (let ((lines (split-string (buffer-string) "\n" t)))
+                (> (length lines) 1))))))))))
 
 (provide 'ob-athena-simple-select-all-integration-test)
 ;;; ob-athena-simple-select-all-integration-test.el ends here

@@ -3,6 +3,10 @@
 (require 'ert)
 (require 'org)
 (require 'ob-athena)
+(load (expand-file-name
+       "ob-athena-test-helpers.el"
+       (file-name-directory (or load-file-name buffer-file-name default-directory)))
+      nil t)
 
 (setq org-confirm-babel-evaluate nil)
 
@@ -13,10 +17,11 @@
 
 (ert-deftest ob-athena-debug-aws-connection ()
   "Run 'aws sts get-caller-identity' to print the exact connection error."
-  (message "--- Running AWS CLI Debug ---")
-  (let ((output (shell-command-to-string "aws sts get-caller-identity --profile williseed-admin 2>&1")))
-    (message "STS Output: %s" output)
-    (should (not (string-match-p "error" (downcase output))))))
+  (ob-athena-test-with-clean-state
+    (message "--- Running AWS CLI Debug ---")
+    (let ((output (shell-command-to-string "aws sts get-caller-identity --profile williseed-admin 2>&1")))
+      (message "STS Output: %s" output)
+      (should (not (string-match-p "error" (downcase output)))))))
 
 (defun ob-athena--wait-for-file (file-path &optional timeout)
   "Wait up to TIMEOUT seconds for FILE-PATH to exist, checking each second.
@@ -60,16 +65,18 @@ If TIMEOUT is nil, defaults to 10 seconds."
 
 (ert-deftest ob-athena-query-returns-valid-id ()
   "Ensure a valid query ID is returned."
-  (let* ((result (ob-athena--run-sample-query))
-         (query-id (ob-athena--extract-query-id result)))
-    (should (and query-id (string-match-p "^[a-f0-9-]+$" query-id)))))
+  (ob-athena-test-with-clean-state
+    (let* ((result (ob-athena--run-sample-query))
+           (query-id (ob-athena--extract-query-id result)))
+      (should (and query-id (string-match-p "^[a-f0-9-]+$" query-id))))))
 
 (ert-deftest ob-athena-csv-has-correct-header-and-rows ()
   "Verify the downloaded Athena CSV has correct header and at least one data row."
-  (let* ((result (ob-athena--run-sample-query))
-         (csv-path (ob-athena--extract-csv-path (car (last result)))))
-    (ob-athena--wait-for-file csv-path)
-    (should (ob-athena--csv-has-header-and-data-p csv-path))))
+  (ob-athena-test-with-clean-state
+    (let* ((result (ob-athena--run-sample-query))
+           (csv-path (ob-athena--extract-csv-path (car (last result)))))
+      (ob-athena--wait-for-file csv-path)
+      (should (ob-athena--csv-has-header-and-data-p csv-path)))))
 
 (provide 'ob-athena-minimal-integration-and-smoke-test)
 ;;; ob-athena-minimal-integration-and-smoke-test.el ends here

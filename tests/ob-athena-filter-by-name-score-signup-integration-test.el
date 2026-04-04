@@ -2,8 +2,11 @@
 
 (require 'ert)
 (require 'org)
-(require 'cl-lib)
 (require 'ob-athena)
+(load (expand-file-name
+       "ob-athena-test-helpers.el"
+       (file-name-directory (or load-file-name buffer-file-name default-directory)))
+      nil t)
 
 (setq org-confirm-babel-evaluate nil)
 
@@ -34,20 +37,7 @@ If TIMEOUT is nil, defaults to 10 seconds."
     (message "[SKIP] ob-athena-user-profiles-filter-by-name-score-signup: skipped in batch mode")
     (ert-skip "Skipped in batch mode (racy in batch)."))
 
-  ;; Pre-clean any leaked globals from previous runs
-  (when (and (boundp 'ob-athena-query-status-timer)
-             (timerp ob-athena-query-status-timer))
-    (cancel-timer ob-athena-query-status-timer)
-    (setq ob-athena-query-status-timer nil))
-  (when (get-buffer "*Athena Monitor*")
-    (kill-buffer "*Athena Monitor*"))
-  ;; Make cancel-timer nil-safe only within this test to guard against an
-  ;; instant-completion double-fire race inside ob-athena.el.
-  (cl-letf* ((orig-cancel (symbol-function 'cancel-timer))
-             ((symbol-function 'cancel-timer)
-              (lambda (tm &rest args)
-                (when (timerp tm)
-                  (apply orig-cancel tm args)))))
+  (ob-athena-test-with-clean-state
     (let ((org-src
            "#+begin_src athena :aws-profile \"williseed-athena\" :database \"default\" :s3-output-location \"s3://athen-query-test-queries-005343251202/test-data/filters-test/\" :workgroup \"primary\" :poll-interval 3 :fullscreen t :result-reuse-enabled nil :result-reuse-max-age 0 :console-region \"us-east-1\" :var name=\"Alice\" score=90 signup_date=\"2024-01-01\"
 SELECT id, name, score, signup_date FROM test_user_profiles
