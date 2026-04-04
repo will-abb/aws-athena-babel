@@ -5,8 +5,8 @@
 ;; Author: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Maintainer: Williams Bosch-Bello <williamsbosch@gmail.com>
 ;; Created: April 05, 2025
-;; Version: 2.1.5
-;; Package-Version: 2.1.5
+;; Version: 2.2.5
+;; Package-Version: 2.2.5
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: aws, athena, org, babel, sql, tools
 ;; URL: https://github.com/will-abb/aws-athena-babel
@@ -59,6 +59,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'org)
 (require 'json)
 (require 'subr-x)
@@ -534,32 +535,74 @@ This is done by downloading and displaying results."
     (insert-file-contents csv-path)
     (let ((raw-lines (split-string (buffer-string) "\n" t)))
       (mapcar (lambda (line)
-                (split-string
-                 (replace-regexp-in-string "^\"\\|\"$" ""
-                                           (replace-regexp-in-string "\\\\n\\|\\\\t" " "
-                                                                     (replace-regexp-in-string "\\\\\"" "\"" line)))
-                 "\",\"" t))
+                (ob-athena--parse-csv-line (string-remove-suffix "\r" line)))
               raw-lines))))
+
+(defun ob-athena--parse-csv-line (line)
+  "Parse CSV LINE into a list of fields while preserving empty cells."
+  (let ((fields nil)
+        (chars nil)
+        (index 0)
+        (length (length line))
+        (in-quotes nil))
+    (while (< index length)
+      (let ((char (aref line index)))
+        (cond
+         ((eq char ?\")
+          (if in-quotes
+              (if (and (< (1+ index) length)
+                       (eq (aref line (1+ index)) ?\"))
+                  (progn
+                    (push ?\" chars)
+                    (setq index (1+ index)))
+                (setq in-quotes nil))
+            (setq in-quotes t)))
+         ((and (eq char ?,) (not in-quotes))
+          (push (ob-athena--normalize-csv-cell
+                 (if chars
+                     (apply #'string (nreverse chars))
+                   ""))
+                fields)
+          (setq chars nil))
+         (t
+          (push char chars))))
+      (setq index (1+ index)))
+    (push (ob-athena--normalize-csv-cell
+           (if chars
+               (apply #'string (nreverse chars))
+             ""))
+          fields)
+    (nreverse fields)))
+
+(defun ob-athena--normalize-csv-cell (cell)
+  "Normalize CSV CELL for display in the monitor buffer."
+  (replace-regexp-in-string
+   "\\\\n\\|\\\\t" " "
+   (replace-regexp-in-string "\\\\\"" "\"" cell)))
 
 (defun ob-athena--calculate-column-widths (rows)
   "Return list of max widths per column from ROWS."
   (if (null rows)
       '()
-    (apply #'cl-mapcar
-           (lambda (&rest cols)
-             (apply #'max (mapcar #'length cols)))
-           rows)))
+    (let ((column-count (apply #'max 0 (mapcar #'length rows))))
+      (mapcar (lambda (column-index)
+                (apply #'max 0
+                       (mapcar (lambda (row)
+                                 (length (or (nth column-index row) "")))
+                               rows)))
+              (number-sequence 0 (1- column-count))))))
 
 (defun ob-athena--render-org-table (rows widths)
   "Render ROWS into Org-style table using column WIDTHS."
   (mapconcat (lambda (row)
-               (concat "| "
-                       (mapconcat #'identity
-                                  (cl-mapcar (lambda (cell width)
-                                               (format (format "%%-%ds" width) cell))
-                                             row widths)
-                                  " | ")
-                       " |"))
+               (let ((cells (append row (make-list (max 0 (- (length widths) (length row))) ""))))
+                 (concat "| "
+                         (mapconcat #'identity
+                                    (cl-mapcar (lambda (cell width)
+                                                 (format (format "%%-%ds" width) (or cell "")))
+                                               cells widths)
+                                    " | ")
+                         " |")))
              rows
              "\n"))
 
